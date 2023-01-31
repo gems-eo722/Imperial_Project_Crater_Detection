@@ -45,6 +45,7 @@ class MoonDataset:
         l = self.data[:, -1].reshape(-1, 1)
         self.labels = KMeans(n_clusters=n_cluster).fit_predict(l)
 
+    # Generate coordinates based on the label dataset using latitude/longitude projection
     def genCoordFile(self):
         file_os = []
         for i in range(4):
@@ -75,6 +76,7 @@ class MoonDataset:
         for i in range(4):
             file_os[i].close()
 
+    # Split the input image into smaller tiles
     def split(self, lable, subsize=416, iou_thresh=0.2, gap=50):
         if not isinstance(lable, list):
             lable = [lable]
@@ -118,5 +120,3 @@ class MoonDataset:
                         f.close()
                     left += subsize - gap
                 top += subsize - gap
-
-
