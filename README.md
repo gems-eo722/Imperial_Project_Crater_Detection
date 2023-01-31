@@ -1,5 +1,71 @@
 # Moonshot: Automatic Impact Crater Detection on the Moon
 
+## Installation
+
+Follow the steps below to create a new virtual environment (`venv`) and install the project's dependencies.
+
+1. Clone this repository using `git clone <url>`
+2. Open a terminal in the repository root, and execute the following commands:
+
+```sh
+$ python -m venv venv
+```
+```sh
+$ source venv/bin/activate
+```
+```sh
+(venv) $ pip install --upgrade pip
+```
+```sh
+(venv) $ pip install --upgrade setuptools
+```
+```sh
+(venv) $ pip install -r requirements.txt
+```
+
+## Usage
+
+Open a terminal in the project root, and ensure that the virtual environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
+
+```sh
+(venv) $ python tycho_cdm/tycho.py -h
+```
+
+Using `-i`, provide the program with a path to an input directory. It must have the following structure:
+
+```
+input_folder/
+  - images/
+    - image1
+    - image2
+    - image3
+    - ...
+  - (optional) labels/
+    - label1.csv
+    - label2.csv
+    - label3.csv
+    - ...
+  - (optional) data/
+    - data1.csv
+    - data2.csv
+    - data3.csv
+    - ...
+```
+
+Images in the `images/` folder can be in any common image format, e.g., `.png`, `.jpg`, `.jpeg`, `.tif`, `.bmp`, etc. It is expected that all images in the `images/` directory have the same dimensions, e.g., 416x416. The program will automatically segment/resize the input image(s) if they do not match the expected input size for the crater detection model.
+
+Label data in the `labels/` folder follows the format outlined in the project summary below.
+
+The `data/` folder is optional and contains a `.csv` file for each image, providing additional information to calculate the position (in lat, long) and diameter (in km) of each crater. The following format is expected:
+
+```
+image center latitude,image center longitude,image width in degrees,image height in degrees,image resolution in metres per pixel,planet radius
+```
+
+
+
+## Project Summary
+
 <a href="url"><img src="https://drive.google.com/uc?export=view&id=1dJjw6g_S8s5hMsiZ67Sp9f50NrgZvoTm" align="left" height="300" width="300" ></a>
 
 Impact craters are the most ubiquitous surface feature on rocky
