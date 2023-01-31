@@ -1,17 +1,15 @@
+"""Input Image Dataset Generator
+
+Script for generating input and target image datasets.
+"""
+
 import pandas as pd
 from sklearn.cluster import KMeans
 import cv2
 import os
 import numpy as np
 
-
 def iou(BBGT, imgRect):
-    """
-    并不是真正的iou。计算每个BBGT和图像块所在矩形区域的交与BBGT本身的的面积之比，比值范围：0~1
-    输入：BBGT：n个标注框，大小为n*4,每个标注框表示为[xmin,ymin,xmax,ymax]，类型为np.array
-          imgRect：裁剪的图像块在原图上的位置，表示为[xmin,ymin,xmax,ymax]，类型为np.array
-    返回：每个标注框与图像块的iou（并不是真正的iou），返回大小n,类型为np.array
-    """
     left_top = np.maximum(BBGT[:, :2], imgRect[:2])
     right_bottom = np.minimum(BBGT[:, 2:], imgRect[2:])
     wh = np.maximum(right_bottom - left_top, 0)
@@ -19,7 +17,7 @@ def iou(BBGT, imgRect):
     iou = inter_area / ((BBGT[:, 2] - BBGT[:, 0]) * (BBGT[:, 3] - BBGT[:, 1]) + 0.0000001)
     return iou
 
-
+### Generate input Moon Dataset ###
 class MoonDataset:
     def __init__(self, csv_file):
         df = pd.read_csv(csv_file)
