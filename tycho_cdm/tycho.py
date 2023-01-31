@@ -26,7 +26,7 @@ def main():
         results.append(model.predict(images[i], labels[i] if has_labels else None, data[i] if has_data else None))
 
     for result in results:
-        bounding_boxes, statistics, crater_data = result
+        # bounding_boxes, statistics, crater_data = result
         pass  # TODO - generate bounding box visualizations, make plots, etc. (output / visualization)
 
 
@@ -54,10 +54,8 @@ def parse_arguments(parser: argparse.ArgumentParser) -> tuple[str, str, str, str
     if dir_is_empty(images_path):
         parser.error('\'image\' subdirectory is empty, nothing to do')
 
-    if not os.path.isdir(args.output_path):
-        parser.error(f'Given path to output directory is invalid: {args.output_path}')
-    if not dir_is_empty(args.output_path):
-        parser.error('Output directory is not empty')
+    if (os.path.isdir(args.output_path)) and not dir_is_empty(args.output_path):
+        parser.error('Output directory exists and is not empty')
 
     if args.planet_name.lower() != 'moon' and args.planet_name.lower() != 'mars':
         parser.error('The planet name must be \'mars\' or \'moon\'')
