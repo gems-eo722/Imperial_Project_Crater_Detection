@@ -6,61 +6,80 @@ from tycho_cdm.model.TychoCDM import TychoCDM
 
 def main():
     parser = make_parser()
-    weights_file_path, images_path, labels_path, additional_data_path = parse_arguments(parser)
+    weights_file_path, images_path, labels_path, data_path, planet_name, output_path = parse_arguments(parser)
 
-    images = os.listdir(images_path)
-    labels = os.listdir(labels_path) if labels_path is not None else []
-    data = os.listdir(additional_data_path) if additional_data_path is not None else []
-
-    has_labels = len(labels) > 0
-    has_data = len(data) > 0
-
-    if has_labels and len(labels) != len(images):
-        parser.error("Number of label files does not match number of images")
-    if has_data and len(data) != len(images):
-        parser.error("Number of data files does not match number of images")
-
-    model = TychoCDM(weights_file_path)
-    results = []
-    for i in range(len(images)):
-        results.append(model.predict(images[i], labels[i] if has_labels else None, data[i] if has_data else None))
+    results = run_batch(weights_file_path, images_path, labels_path, data_path, planet_name)
 
     for result in results:
         # bounding_boxes, statistics, crater_data = result
         pass  # TODO - generate bounding box visualizations, make plots, etc. (output / visualization)
 
 
-def parse_arguments(parser: argparse.ArgumentParser) -> tuple[str, str, str, str]:
+def run_batch(weights_file_path, images_path, labels_path, data_path, planet_name) -> any:  # TODO - return type
+    images = os.listdir(images_path)
+    labels = os.listdir(labels_path) if labels_path is not None else []
+    data = os.listdir(data_path) if data_path is not None else []
+
+    has_labels = len(labels) > 0
+    has_data = len(data) > 0
+
+    if has_labels and len(labels) != len(images):
+        raise RuntimeError("Number of label files does not match number of images")
+    if has_data and len(data) != len(images):
+        raise RuntimeError("Number of data files does not match number of images")
+
+    model = TychoCDM(weights_file_path)
+    results = []
+    for i in range(len(images)):
+        results.append(
+            model.predict(
+                os.path.join(images_path, images[i]),
+                os.path.join(labels_path, labels[i]) if has_labels else None,
+                os.path.join(data_path, data[i]) if has_data else None))
+
+    return results
+
+
+def parse_arguments(parser: argparse.ArgumentParser):
     args = parser.parse_args()
 
+    input_path: str = args.input_path
+    output_path: str = args.output_path
     weights_file_path: str = args.weights_file_path
+    planet_name: str = args.planet_name
+
+    return process_arguments(weights_file_path, input_path, output_path, planet_name)
+
+
+def process_arguments(weights_file_path: str, input_path: str, output_path: str, planet_name: str):
+    labels_path = os.path.join(input_path, 'labels')
+    data_path = os.path.join(input_path, 'data')
+    images_path = os.path.join(input_path, 'images')
+
     if not os.path.isfile(weights_file_path):
-        parser.error(f'Given path to weights file is invalid: {weights_file_path}')
+        raise RuntimeError(f'Given path to weights file is invalid: {weights_file_path}')
 
-    if not os.path.isdir(args.input_path):
-        parser.error(f'Given path to input directory is invalid: {args.input_path}')
+    if not os.path.isdir(input_path):
+        raise RuntimeError(f'Given path to input directory is invalid: {input_path}')
 
-    labels_path = os.path.join(args.input_path, 'labels')
     if not os.path.isdir(labels_path):
         labels_path = None
 
-    data_path = os.path.join(args.input_path, 'data')
     if not os.path.isdir(data_path):
         data_path = None
 
-    images_path = os.path.join(args.input_path, 'images')
     if not os.path.isdir(images_path):
-        parser.error('Input directory does not contain \'images\' subdirectory')
+        raise RuntimeError('Input directory does not contain \'images\' subdirectory')
     if dir_is_empty(images_path):
-        parser.error('\'image\' subdirectory is empty, nothing to do')
+        raise RuntimeError('\'image\' subdirectory is empty, nothing to do')
 
-    if (os.path.isdir(args.output_path)) and not dir_is_empty(args.output_path):
-        parser.error('Output directory exists and is not empty')
+    if (os.path.isdir(output_path)) and not dir_is_empty(output_path):
+        raise RuntimeError('Output directory exists and is not empty')
 
-    if args.planet_name.lower() != 'moon' and args.planet_name.lower() != 'mars':
-        parser.error('The planet name must be \'mars\' or \'moon\'')
+    if planet_name.lower() != 'moon' and planet_name.lower() != 'mars':
+        raise RuntimeError('The planet name must be \'mars\' or \'moon\'')
 
-    return weights_file_path, images_path, labels_path, data_path
+    return weights_file_path, images_path, labels_path, data_path, planet_name, output_path
 
 
 def make_parser():

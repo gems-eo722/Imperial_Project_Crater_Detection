@@ -59,9 +59,10 @@ Label data in the `labels/` folder follows the format outlined in the project su
 The `data/` folder is optional and contains a `.csv` file for each image, providing additional information to calculate the position (in lat, long) and diameter (in km) of each crater. The following format is expected:
 
 ```
-image center latitude,image center longitude,image width in degrees,image height in degrees,image resolution in metres per pixel,planet radius
+image center latitude,image center longitude,image width in degrees,image height in degrees,image resolution in metres per pixel
 ```
 
+Planet radius will be determined from the planet name that is provided when running the application.
 
 
 ## Project Summary
@@ -90,7 +91,7 @@ images of remote surfaces has become so large that manual counting is
 unfeasible. Furthermore, manual counting can be time consuming and
 subjective
 ([Robbins et al., 2014](https://doi.org/10.1016/j.icarus.2014.02.022)).
-This motivates the need for automated crater detection and counting algorithms ([DeLatte et al., 
+This motivates the need for automated crater detection and counting algorithms ([DeLatte et al.,
 2019](https://doi.org/10.1016/j.asr.2019.07.017)).
 
 Recent work has shown that widely used object detection algorithms
@@ -149,7 +150,7 @@ One team should develop a module for automatically locating craters
 in images. You are free to base your CDM on any available object
 detection model and to investigate multiple models before deciding on your
 preferred option.  We suggest that as a starting point you try one of the
-YOLO implementations available [here](https://github.com/ultralytics/). 
+YOLO implementations available [here](https://github.com/ultralytics/).
 
 To develop, train and test your first CDM you have been provided
 with a dataset of images of the surface of Mars, taken by the [THEMIS](https://astrogeology.usgs.gov/maps/mars-themis-controlled-mosaics-and-final-smithed-kernels) camera (100-m/px),
@@ -164,7 +165,7 @@ label data.
 
 The performance of your CDM for detecting craters in THEMIS images of
 Mars will be assessed using a test set similar to the training data
-set. You will not have access to this test set until *Friday*. 
+set. You will not have access to this test set until *Friday*.
 
 ### A training dateset for the Moon
 Your tool should be able to detect craters on the Moon, as well as
@@ -193,12 +194,12 @@ The four images provided are for the regions:
 
 * A: -180 to -90 longitude, -45 to 0 latitude;
 * B: -180 to -90 longitude, 0 to 45
-latitude; 
-* C: -90 to 0 longitude, -45 to 0 latitude; 
+latitude;
+* C: -90 to 0 longitude, -45 to 0 latitude;
 * D: -90 to 0 longitude, 0 to 45 latitude.
 
 The test images will be taken from somewhere in the region
-0 to 180 longitude; -45 to 45 latitude. 
+0 to 180 longitude; -45 to 45 latitude.
 
 The crater database that you can use to generate your training labels
 is a subset of the manually derived lunar impact crater
@@ -206,7 +207,7 @@ database [Robbins, 2019](https://doi.org/10.1029/2018JE00559). You
 should not download the full database for use in your training or
 testing. Note that the Robbins crater database is complete for craters larger than
 1-2 km; many smaller craters present in the images will be
-unlabelled. 
+unlabelled.
 
 ### A tool for analysis of craters
 Your final CDMs for the Moon and Mars should be implemented within a
@@ -244,7 +245,7 @@ crater detection as a function of crater size. You should present your
 self-assessed accuracy in the video presentation. Extra credit will be
 given to groups that provide an accurate assessment of their model
 performance. Groups will lose marks for over-promising and
-under-delivering! 
+under-delivering!
 
 If you have time to spare during the week, extra credit will be given
 for tools that provide a User-friendly interface and implement useful
@@ -280,7 +281,7 @@ against every crater in our ground truth crater bounding box list
 * We will then pair each bounding box $g_i$ in the ground truth list with a
 detected crater, $c_i$ in your list, with the pairings chosen to
 maximise the sum $$\sum_i \textrm{IoU}(g_i, c_i).$$
-* We will calculate a crater recall index using the formula 
+* We will calculate a crater recall index using the formula
 $$R=\frac{\textrm{number of crater pairs with IoU>0.5 and area of }g_i>A_R}{\textrm{number of ground truth bounding boxes with area of }g_i>A_R},$$
 where $A_R$ is the fractional area of the image that corresponds to a crater size $D_R$.
 * We calculate a crater precision index using the formula
@@ -298,7 +299,7 @@ sizes. In all cases, we will use $D_P = 1.2D_R$ to allow for some
 uncertainty in your bounding box sizes when calculating precision.
 
 To score highly on these measures, your model needs to do a good job at
-detecting craters of different sizes and not suggest that craters exist where we do not expect them. 
+detecting craters of different sizes and not suggest that craters exist where we do not expect them.
 
 ## Technical requirements
 The deadline for submission of the software tool is *12:00 pm (noon),
@@ -351,7 +352,7 @@ If the User provides information that allows the crater size, latitude
 and longitude to be determined, this data should also be
 provided in the output csv file for each detected crater. The units of
 crater size should be km; the units of latitude and longitude of the
-crater centre should be in degrees. 
+crater centre should be in degrees.
 
 ### Visualisation
 Your tool should allow the User to visualise the following:
@@ -413,7 +414,7 @@ The presentation must include the following:
 * If appropriate, describe how your tool uses the CDM to detect craters on large
   images that cannot be input into the CDM in one go. Explain how the
   image is subdivided into tiles and how detections from each tile are
-  aggregated together. 
+  aggregated together.
 * Demonstrate the performance of your crater detection model using
   your own ground truth data. Using the training dataset that you
   generated for the Moon, critically assess the performance of your
@@ -425,5 +426,3 @@ The presentation must include the following:
   size-frequency distribution from the detections. Demonstrate any
   additional features of your tool that you have had time to implement.
 * Show the results of your tool for two images of the Moon provided on Friday.
-
-
