@@ -25,7 +25,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    install_requires=['setuptools'],  # TODO
+    install_requires=['setuptools', 'pandas'],  # TODO
     keywords=['python', 'yolo', 'object detection', 'crater detection', 'mars crater detection',
               'moon crater detection', 'computer vision'],
     classifiers=[

@@ -25,7 +25,8 @@ def main():
     for i in range(len(images)):
         results.append(model.predict(images[i], labels[i] if has_labels else None, data[i] if has_data else None))
 
-    for (bounding_boxes, statistics, crater_data) in results:
+    for result in results:
+        bounding_boxes, statistics, crater_data = result
         pass  # TODO - generate bounding box visualizations, make plots, etc. (output / visualization)
 
 
