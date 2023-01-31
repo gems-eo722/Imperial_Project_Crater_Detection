@@ -8,24 +8,24 @@ Follow the steps below to create a new virtual environment (`venv`) and install 
 2. Open a terminal in the repository root, and execute the following commands:
 
 ```sh
-pip install virtualenv
+$ pip install virtualenv
 ```
 ```sh
-virtualenv venv
+$ virtualenv venv
 ```
 ```sh
-source venv/bin/activate
+$ source venv/bin/activate
 ```
 ```sh
-pip install -r requirements.txt
+(venv) $ pip install -r requirements.txt
 ```
 
 ## Usage
 
-Open a terminal in the project root. Run the following command to generate a help message explaining the required and optional program arguments.
+Open a terminal in the project root, and ensure that the virtual environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
 
 ```sh
-python tycho_cdm/tycho.py -h
+(venv) $ python tycho_cdm/tycho.py -h
 ```
 
 Using `-i`, provide the program with a path to an input directory. It must have the following structure:
