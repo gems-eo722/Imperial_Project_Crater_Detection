@@ -1,65 +1,124 @@
+import pandas as pd
+from sklearn.cluster import KMeans
 import cv2
 import os
-import pandas as pd
 import numpy as np
 
-img_size = 416
 
-# for name in os.listdir("Moon_WAC_Training/images"):
-#     img_file = os.path.join("Moon_WAC_Training/images", name)
-#     label_file = os.path.join("Moon_WAC_Training/labels", os.path.basename(name).split(".png")[0] + ".csv")
-#     f = open(label_file, "r")
-#     img = cv2.imread(img_file)
-#     for lines in f:
-#         bbox = lines.strip().split(",")
-#         bbox = [int(float(x) * img_size) for x in bbox]
-#         x, y, w, h = bbox
-#         cv2.rectangle(img, (int(x - w / 2), int(y - h / 2)), (int(x + w / 2), int(y + h / 2)), (0, 255, 0), 2, 4)
-#     cv2.imwrite(os.path.join("moon",name),img)
+def iou(BBGT, imgRect):
+    """
+    并不是真正的iou。计算每个BBGT和图像块所在矩形区域的交与BBGT本身的的面积之比，比值范围：0~1
+    输入：BBGT：n个标注框，大小为n*4,每个标注框表示为[xmin,ymin,xmax,ymax]，类型为np.array
+          imgRect：裁剪的图像块在原图上的位置，表示为[xmin,ymin,xmax,ymax]，类型为np.array
+    返回：每个标注框与图像块的iou（并不是真正的iou），返回大小n,类型为np.array
+    """
+    left_top = np.maximum(BBGT[:, :2], imgRect[:2])
+    right_bottom = np.minimum(BBGT[:, 2:], imgRect[2:])
+    wh = np.maximum(right_bottom - left_top, 0)
+    inter_area = wh[:, 0] * wh[:, 1]
+    iou = inter_area / ((BBGT[:, 2] - BBGT[:, 0]) * (BBGT[:, 3] - BBGT[:, 1]) + 0.0000001)
+    return iou
 
-df = pd.read_csv("Moon_WAC_Training/labels/lunar_crater_database_robbins_train.csv")
-df_s = df[["LAT_CIRC_IMG", "LON_CIRC_IMG", "DIAM_CIRC_IMG"]].dropna()
-data = np.asarray(df_s)
 
-# max_long,min_long,max_lat,min_lat
-extents = [[-90, -180, 0, -45], [-90, -180, 45, 0], [0, -90, 0, -45], [0, -90, 45, 0]]
-Names = ["A", "B", "C", "D"]
-shapes = []
-imgs = []
-for name in Names:
-    img = cv2.imread(os.path.join("Moon_WAC_Training/images", "Lunar_" + name + ".jpg"))
-    shapes.append(img.shape)
-    imgs.append(img)
+class MoonDataset:
+    def __init__(self, csv_file):
+        df = pd.read_csv(csv_file)
+        df_s = df[["LAT_CIRC_IMG", "LON_CIRC_IMG", "DIAM_CIRC_IMG"]].dropna()
+        self.data = np.asarray(df_s)
+        self.labels = None
+        self.extents = [[-90, -180, 0, -45], [-90, -180, 45, 0], [0, -90, 0, -45], [0, -90, 45, 0]]
+        self.Names = ["A", "B", "C", "D"]
 
-ratios_w = []
-ratios_h = []
-for i, extent in enumerate(extents):
-    h, w = shapes[i][:-1]
-    w_ratio = abs(extent[0] - extent[1]) / w
-    h_ratio = abs(extent[2] - extent[3]) / h
-    ratios_w.append(w_ratio)
-    ratios_h.append(h_ratio)
+        self.shapes = []
+        for name in self.Names:
+            img = cv2.imread(os.path.join("Moon_WAC_Training/images", "Lunar_" + name + ".jpg"))
+            self.shapes.append(img.shape)
 
-for lat, long, l in data:
-    if long > -90:
-        if lat > 0:
-            region = 3
-        else:
-            region = 2
-    else:
-        if lat > 0:
-            region = 1
-        else:
-            region = 0
-    img = imgs[region]
-    extent = extents[region]
-    w_ratio = ratios_w[region]
-    h_ratio = ratios_h[region]
-    x = int(abs(long - extent[1]) / w_ratio)
-    y = int(abs(lat - extent[2]) / h_ratio)
-    radius = int(5 * l)
-    cv2.rectangle(img, (int(x - radius), int(y - radius)), (int(x + radius), int(y + radius)), (0, 255, 255), 2, 4)
+        self.ratios_w = []
+        self.ratios_h = []
+        for i, extent in enumerate(self.extents):
+            h, w = self.shapes[i][:-1]
+            w_ratio = abs(extent[0] - extent[1]) / w
+            h_ratio = abs(extent[2] - extent[3]) / h
+            self.ratios_w.append(w_ratio)
+            self.ratios_h.append(h_ratio)
 
-for i, img in enumerate(imgs):
-    name = Names[i]
-    cv2.imwrite(os.path.join("moon", "Lunar_" + name + '.png'), img)
+    def genClass(self, n_cluster):
+        l = self.data[:, -1].reshape(-1, 1)
+        self.labels = KMeans(n_clusters=n_cluster).fit_predict(l)
+
+    def genCoordFile(self):
+        file_os = []
+        for i in range(4):
+            file_os.append(open(self.Names[i] + ".csv", "w"))
+
+        for i, (lat, long, l) in enumerate(self.data):
+            if long > -90:
+                if lat > 0:
+                    region = 3
+                else:
+                    region = 2
+            else:
+                if lat > 0:
+                    region = 1
+                else:
+                    region = 0
+            h, w = self.shapes[region][:-1]
+            extent = self.extents[region]
+            w_ratio = self.ratios_w[region]
+            h_ratio = self.ratios_h[region]
+            x = int(abs(long - extent[1]) / w_ratio)
+            y = int(abs(lat - extent[2]) / h_ratio)
+            radius = int(5 * l)
+            x1, y1, x2, y2 = x - radius, y - radius, x + radius, y + radius
+            file_os[region].write("%d,%d,%d,%d,%d\n" % (
+                x1 if x1 > 0 else 0, y1 if y1 > 0 else 0, x2 if x2 < h else h - 1, y2 if y2 < w else w - 1,
+                self.labels[i]))
+        for i in range(4):
+            file_os[i].close()
+
+    def split(self, lable, subsize=416, iou_thresh=0.2, gap=50):
+        if not isinstance(lable, list):
+            lable = [lable]
+        for name in self.Names:
+            dirdst = os.path.join("data", name)
+            BBGT = np.asarray(pd.read_csv(os.path.join("data", name + ".csv")))
+            img = cv2.imread(os.path.join("Moon_WAC_Training/images", "Lunar_" + name + ".jpg"))
+            img_h, img_w = img.shape[:2]
+            top = 0
+            reachbottom = False
+            while not reachbottom:
+                reachright = False
+                left = 0
+                if top + subsize >= img_h:
+                    reachbottom = True
+                    top = max(img_h - subsize, 0)
+                while not reachright:
+                    if left + subsize >= img_w:
+                        reachright = True
+                        left = max(img_w - subsize, 0)
+                    imgsplit = img[top:min(top + subsize, img_h), left:min(left + subsize, img_w)]
+                    if imgsplit.shape[:2] != (subsize, subsize):
+                        template = np.zeros((subsize, subsize, 3), dtype=np.uint8)
+                        template[0:imgsplit.shape[0], 0:imgsplit.shape[1]] = imgsplit
+                        imgsplit = template
+                    imgrect = np.array([left, top, left + subsize, top + subsize]).astype('float32')
+                    ious = iou(BBGT[:, :4].astype('float32'), imgrect)
+                    BBpatch = BBGT[ious > iou_thresh]
+                    BBpatch_LABELD = BBpatch[np.where(BBpatch[:, -1] in lable)]
+                    ## abandaon images with 0 bboxes
+                    if len(BBpatch_LABELD) > 0:
+                        split_name = os.path.join(dirdst, name + '_' + str(left) + '_' + str(top))
+                        cv2.imwrite(split_name + ".png", imgsplit)
+                        f = open(split_name + '.txt', "w")
+                        for bb in BBpatch_LABELD:
+                            x1, y1, x2, y2, target_id = int(bb[0]) - left, int(bb[1]) - top, int(bb[2]) - left, int(
+                                bb[3]) - top, int(bb[4])
+                            f.write("%d,%d,%d,%d,%d\n" % (
+                                x1 if x1 > 0 else 0, y1 if y1 > 0 else 0, x2 if x2 < subsize else subsize - 1,
+                                y2 if y2 < subsize else subsize - 1, target_id))
+                        f.close()
+                    left += subsize - gap
+                top += subsize - gap
+
+
