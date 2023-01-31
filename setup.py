@@ -10,16 +10,16 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 
 LICENSE = 'BSD 3-clause'
 VERSION = '0.1.0'
-DESCRIPTION = 'Taycho Crater Detection Model (CDM)'
+DESCRIPTION = 'Tycho Crater Detection Model (CDM)'
 LONG_DESCRIPTION = \
-    'A package that contains code to run the crater detection model of group Taycho from the commandline.'
+    'A package that contains code to run the crater detection model of group Tycho from the commandline.'
 
 # Setting up
 setup(
-    name="taycho_cdm",
+    name="tycho_cdm",
     version=VERSION,
-    author="Group Taycho",
-    author_email="<acds.taycho@gmail.com>",
+    author="Group Tycho",
+    author_email="<acds.tycho@gmail.com>",
     license=LICENSE,
     description=DESCRIPTION,
     long_description_content_type="text/markdown",

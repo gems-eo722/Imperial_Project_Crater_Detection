@@ -21,8 +21,12 @@ def main():
         parser.error("Number of data files does not match number of images")
 
     model = TychoCDM(weights_file_path)
+    results = []
     for i in range(len(images)):
-        return model.predict(images[i], labels[i] if has_labels else None, data[i] if has_data else None)
+        results.append(model.predict(images[i], labels[i] if has_labels else None, data[i] if has_data else None))
+
+    for (bounding_boxes, statistics, crater_data) in results:
+        pass  # TODO - generate bounding box visualizations, make plots, etc. (output / visualization)
 
 
 def parse_arguments(parser: argparse.ArgumentParser) -> tuple[str, str, str, str]:
