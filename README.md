@@ -8,13 +8,16 @@ Follow the steps below to create a new virtual environment (`venv`) and install 
 2. Open a terminal in the repository root, and execute the following commands:
 
 ```sh
-$ pip install virtualenv
-```
-```sh
-$ virtualenv venv
+$ python -m venv venv
 ```
 ```sh
 $ source venv/bin/activate
+```
+```sh
+(venv) $ pip install --upgrade pip
+```
+```sh
+(venv) $ pip install --upgrade setuptools
 ```
 ```sh
 (venv) $ pip install -r requirements.txt
