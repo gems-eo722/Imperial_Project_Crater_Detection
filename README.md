@@ -56,7 +56,7 @@ Label data in the `labels/` folder follows the format outlined in the project su
 The `data/` folder is optional and contains a `.csv` file for each image, providing additional information to calculate the position (in lat, long) and diameter (in km) of each crater. The following format is expected:
 
 ```
-image center latitude,image center longitude,image width in degrees,image height in degrees,image resolution in metres per pixel, planet radius
+image center latitude,image center longitude,image width in degrees,image height in degrees,image resolution in metres per pixel,planet radius
 ```
 
 

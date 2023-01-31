@@ -31,6 +31,7 @@ setup(
     classifiers=[
         "Development Status :: 2 - Production",  # TODO
         "Intended Audience :: ESE Students",
+        "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
         "Operating System :: Unix",
         "Operating System :: MacOS :: MacOS X",
