@@ -1,16 +1,15 @@
-"""Input Image Dataset Generator
-
-Script for generating input and target image datasets.
-"""
-
 import pandas as pd
 from sklearn.cluster import KMeans
 import cv2
 import os
 import numpy as np
-from math import cos,radians
+from math import cos, radians
+import matplotlib.pyplot as plt
+
 
 def iou(BBGT, imgRect):
+    """
+    """
     left_top = np.maximum(BBGT[:, :2], imgRect[:2])
     right_bottom = np.minimum(BBGT[:, 2:], imgRect[2:])
     wh = np.maximum(right_bottom - left_top, 0)
@@ -18,10 +17,6 @@ def iou(BBGT, imgRect):
     iou = inter_area / ((BBGT[:, 2] - BBGT[:, 0]) * (BBGT[:, 3] - BBGT[:, 1]) + 0.0000001)
     return iou
 
-
-def project(phi, lamda, lamda0):
-    y = (lamda - lamda0) * cos(radians(phi))
-    return y
 
 class MoonDataset:
     def __init__(self, csv_file):
@@ -51,7 +46,6 @@ class MoonDataset:
         l = self.data[:, -1].reshape(-1, 1)
         self.labels = KMeans(n_clusters=n_cluster).fit_predict(l)
 
-    # Generate coordinates based on the label dataset using latitude/longitude projection
     def genCoordFile(self):
         file_os = []
         for i in range(4):
@@ -68,30 +62,27 @@ class MoonDataset:
                     region = 1
                 else:
                     region = 0
-
-            extent = self.extents[region]
-            long0 = 0
-            long = project(lat, long, long0)
             h, w = self.shapes[region][:-1]
+            extent = self.extents[region]
             w_ratio = self.ratios_w[region]
             h_ratio = self.ratios_h[region]
             x = int(abs(long - extent[1]) / w_ratio)
             y = int(abs(lat - extent[2]) / h_ratio)
             radius = int(5 * l)
-            x1, y1, x2, y2 = x - radius, y - radius, x + radius, y + radius
+            coef = cos(radians(lat))
+            x1, y1, x2, y2 = x - radius, y - radius*coef, x + radius, y + radius*coef
             file_os[region].write("%d,%d,%d,%d,%d\n" % (
                 x1 if x1 > 0 else 0, y1 if y1 > 0 else 0, x2 if x2 < h else h - 1, y2 if y2 < w else w - 1,
                 self.labels[i]))
         for i in range(4):
             file_os[i].close()
 
-    # Split the input image into smaller tiles
     def split(self, lable, subsize=416, iou_thresh=0.2, gap=50):
         if not isinstance(lable, list):
             lable = [lable]
         for name in self.Names:
             dirdst = os.path.join("data", name)
-            BBGT = np.asarray(pd.read_csv(os.path.join("data", name + ".csv")))
+            BBGT = np.asarray(pd.read_csv(name + ".csv"))
             img = cv2.imread(os.path.join("Moon_WAC_Training/images", "Lunar_" + name + ".jpg"))
             img_h, img_w = img.shape[:2]
             top = 0
@@ -123,31 +114,32 @@ class MoonDataset:
                         for bb in BBpatch_LABELD:
                             x1, y1, x2, y2, target_id = int(bb[0]) - left, int(bb[1]) - top, int(bb[2]) - left, int(
                                 bb[3]) - top, int(bb[4])
-                            f.write("%d %d %d %d %d\n" % (0,
-                                                          x1 if x1 > 0 else 0, y1 if y1 > 0 else 0,
-                                                          x2 if x2 < subsize else subsize - 1,
-                                                          y2 if y2 < subsize else subsize - 1))
+                            f.write("%d,%d,%d,%d,%d\n" % (
+                                x1 if x1 > 0 else 0, y1 if y1 > 0 else 0, x2 if x2 < subsize else subsize - 1,
+                                y2 if y2 < subsize else subsize - 1, target_id))
                         f.close()
                     left += subsize - gap
                 top += subsize - gap
 
-s = MoonDataset("Moon_WAC_Training/labels/lunar_crater_database_robbins_train.csv")
-s.genCoordFile()
-s.split([0,1,2])
+    def showDistribution(self):
+        plt.xscale("log")
+        plt.hist(self.data[:,-1], bins=np.exp(np.linspace(0, 5, 51)))  # bin size = e^0.1
+        plt.show()
 
-for root, dirs, files in os.walk("data/A"):
-    for file in files:
-        if file.endswith("png"):
-            name = file.split(".")[0]
-            img_path = os.path.join(root, file)
-            visual_path = os.path.join("data/visual", file)
-            label_path = os.path.join(root, name + ".txt")
-            img = cv2.imread(img_path)
-            f = open(label_path, "r")
-            for l in f:
-                try:
-                    _,x1, y1, x2, y2 = l.strip().split(" ")
-                except:
-                    print(img_path)
-                cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
-            cv2.imwrite(visual_path,img)
+
+# s = MoonDataset("Moon_WAC_Training/labels/lunar_crater_database_robbins_train.csv")
+# s.showDistribution()
+#
+# for root, dirs, files in os.walk("data/A"):
+#     for file in files:
+#         if file.endswith("png"):
+#             name = file.split(".")[0]
+#             img_path = os.path.join(root, file)
+#             visual_path = os.path.join("data/visual", file)
+#             label_path = os.path.join(root, name + ".txt")
+#             img = cv2.imread(img_path)
+#             f = open(label_path, "r")
+#             for l in f:
+#                 x1, y1, x2, y2, _ = l.strip().split(",")
+#                 cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
+#             cv2.imwrite(visual_path, img)
