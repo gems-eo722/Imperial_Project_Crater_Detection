@@ -171,13 +171,17 @@ class TychoGUI(QWidget):
             model = TychoCDM(planet_name)
             results = model.batch_inference(images_path)
             tycho_cdm.tycho.write_results(results, labels_path, data_path, output_folder_path)
+            self.message_popup(f"Success! All results have been written to the output path:\n\n{output_folder_path}",
+                               "Operation Complete", QMessageBox.Information)
         except RuntimeError as runtime_error:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Error")
-            msg.setInformativeText(runtime_error.args[0])
-            msg.setWindowTitle("Error")
-            msg.exec_()
+            self.message_popup(runtime_error.args[0], "Error", QMessageBox.Critical)
+
+    def message_popup(self, text, title, icon):
+        msg = QMessageBox()
+        msg.setIcon(icon)
+        msg.setText(text)
+        msg.setWindowTitle(title)
+        msg.exec_()
 
     def select_folder(self, window_name):
         dialog = QtWidgets.QFileDialog()
