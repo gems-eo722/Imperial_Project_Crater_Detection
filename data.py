@@ -126,20 +126,22 @@ class MoonDataset:
         plt.hist(self.data[:,-1], bins=np.exp(np.linspace(0, 5, 51)))  # bin size = e^0.1
         plt.show()
 
+if __name__=="__main__":
+    s = MoonDataset("Moon_WAC_Training/labels/lunar_crater_database_robbins_train.csv")
+    s.showDistribution()
 
-# s = MoonDataset("Moon_WAC_Training/labels/lunar_crater_database_robbins_train.csv")
-# s.showDistribution()
-#
-# for root, dirs, files in os.walk("data/A"):
-#     for file in files:
-#         if file.endswith("png"):
-#             name = file.split(".")[0]
-#             img_path = os.path.join(root, file)
-#             visual_path = os.path.join("data/visual", file)
-#             label_path = os.path.join(root, name + ".txt")
-#             img = cv2.imread(img_path)
-#             f = open(label_path, "r")
-#             for l in f:
-#                 x1, y1, x2, y2, _ = l.strip().split(",")
-#                 cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
-#             cv2.imwrite(visual_path, img)
+    for root, dirs, files in os.walk("data/A"):
+        for file in files:
+            if file.endswith("png"):
+                name = file.split(".")[0]
+                img_path = os.path.join(root, file)
+                visual_path = os.path.join("data/visual", file)
+                label_path = os.path.join(root, name + ".txt")
+                img = cv2.imread(img_path)
+                f = open(label_path, "r")
+                for l in f:
+                    x1, y1, x2, y2, _ = l.strip().split(",")
+                    cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
+                cv2.imwrite(visual_path, img)
+
+
