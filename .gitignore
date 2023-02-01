@@ -162,7 +162,5 @@ example
 
 img_list/
 
-
-mmyolo/
-
-weights/
+mm_yolo/
+tycho_cdm/model/weights/
