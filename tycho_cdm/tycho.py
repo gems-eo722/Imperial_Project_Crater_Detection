@@ -1,5 +1,8 @@
 import argparse
 import os
+from pathlib import Path
+
+import pandas as pd
 
 from tycho_cdm.model.TychoCDM import TychoCDM
 from tycho_cdm.visualization import visualizer
@@ -97,12 +100,16 @@ def write_results(results, labels_path, data_path, output_folder_path):
 
     labels = os.listdir(labels_path) if labels_path is not None else None
     for i, (image_path, bboxes, _, confidence) in enumerate(results):
+        file_name = Path(image_path).name[:-4]
         visualizer.visualize(
             image_path,
             bboxes,
             confidence[0],
             output_images_path,
             os.path.join(labels_path, labels[i]) if labels is not None else None)
+
+        with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
+            pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
 
     if labels_path is not None and labels_path != "":
         statistics_path = os.path.join(output_folder_path, 'statistics')
