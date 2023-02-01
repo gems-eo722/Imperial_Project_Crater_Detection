@@ -1,3 +1,4 @@
 setuptools~=65.6.3
 pandas~=1.5.3
 PyQt5~=5.15.8
+

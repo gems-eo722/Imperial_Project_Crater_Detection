@@ -22,6 +22,19 @@ $ source venv/bin/activate
 ```sh
 (venv) $ pip install -r requirements.txt
 ```
+```sh
+(venv) $ conda install pytorch torchvision torchaudio cpuonly -c pytorch
+(venv) $ pip install openmim
+(venv) $ mim install "mmengine>=0.3.1"
+(venv) $ mim install "mmcv>=2.0.0rc1,<2.1.0"
+(venv) $ mim install "mmdet>=3.0.0rc5,<3.1.0"
+(venv) $ git clone https://github.com/open-mmlab/mmyolo.git
+cd mmyolo
+# Install albumentations
+(venv) $ pip install -r requirements/albu.txt
+# Install MMYOLO
+(venv) $ mim install -v -e .
+```
 
 ## Usage
 

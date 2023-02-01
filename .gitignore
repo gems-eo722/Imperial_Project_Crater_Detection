@@ -159,3 +159,5 @@ cython_debug/
 
 # Other / Misc
 example
+
+img_list/
