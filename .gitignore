@@ -163,4 +163,4 @@ example
 img_list/
 
 mm_yolo/
-weights/
+tycho_cdm/model/weights/

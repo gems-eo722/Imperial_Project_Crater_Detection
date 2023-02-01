@@ -16,7 +16,6 @@ class TychoGUI(QWidget):
 
         # Variables to extract from UI
         self.planet_name = None
-        self.weights_file_path = None
         self.output_folder_path = None
         self.input_folder_path = None
 
@@ -27,7 +26,6 @@ class TychoGUI(QWidget):
         # Batch page elements
         self.output_folder_path_text = None
         self.input_folder_path_text = None
-        self.weights_file_path_text = None
         self.planet_selection_dropdown = None
         self.batch_submit_button = None
 
@@ -78,12 +76,6 @@ class TychoGUI(QWidget):
     def fill_page_2(self):
         layout = QGridLayout()
 
-        model_weights_button = QPushButton("Select model weights file")
-        model_weights_button.clicked.connect(
-            lambda: self.choose_file_or_folder_to_field("weights_file_path", self.select_file,
-                                                        "Select model weights file"))
-        self.weights_file_path_text = QLabel("")
-
         input_select_button = QPushButton("Select input folder")
         input_select_button.clicked.connect(
             lambda: self.choose_file_or_folder_to_field("input_folder_path", self.select_folder, "Select input folder"))
@@ -109,22 +101,19 @@ class TychoGUI(QWidget):
         self.batch_submit_button.clicked.connect(lambda: self.submit_batch())
         self.batch_submit_button.setEnabled(False)
 
-        layout.addWidget(model_weights_button, 0, 0)
-        layout.addWidget(self.weights_file_path_text, 1, 0)
+        layout.addWidget(input_select_button, 0, 0)
+        layout.addWidget(self.input_folder_path_text, 1, 0)
 
-        layout.addWidget(input_select_button, 2, 0)
-        layout.addWidget(self.input_folder_path_text, 3, 0)
+        layout.addWidget(output_select_button, 2, 0)
+        layout.addWidget(self.output_folder_path_text, 3, 0)
 
-        layout.addWidget(output_select_button, 4, 0)
-        layout.addWidget(self.output_folder_path_text, 5, 0)
+        layout.addItem(QSpacerItem(0, 40), 4, 0)
+
+        layout.addLayout(planet_selection_layout, 5, 0)
 
         layout.addItem(QSpacerItem(0, 40), 6, 0)
 
-        layout.addLayout(planet_selection_layout, 7, 0)
-
-        layout.addItem(QSpacerItem(0, 40), 8, 0)
-
-        layout.addWidget(self.batch_submit_button, 9, 0)
+        layout.addWidget(self.batch_submit_button, 7, 0)
 
         self.page_2.setLayout(layout)
 
@@ -141,17 +130,14 @@ class TychoGUI(QWidget):
 
         self.input_folder_path = None
         self.output_folder_path = None
-        self.weights_file_path = None
         self.planet_name = None
 
         self.input_folder_path_text.setText("")
         self.output_folder_path_text.setText("")
-        self.weights_file_path_text.setText("")
 
     def is_batch_form_complete(self):
         return self.input_folder_path is not None \
             and self.output_folder_path is not None \
-            and self.weights_file_path is not None \
             and self.planet_name is not None
 
     def update_submit_button(self):
@@ -178,13 +164,13 @@ class TychoGUI(QWidget):
 
     def submit_batch(self):
         try:
-            weights_file_path, images_path, labels_path, data_path, planet_name, output_folder_path = \
+            images_path, labels_path, data_path, planet_name, output_folder_path = \
                 tycho_cdm.tycho.process_arguments(
-                    self.weights_file_path, self.input_folder_path, self.output_folder_path, self.planet_name)
+                    self.input_folder_path, self.output_folder_path, self.planet_name)
 
-            model = TychoCDM(weights_file_path)
+            model = TychoCDM(planet_name)
             results = model.batch_inference(images_path)
-            tycho_cdm.tycho.write_results(results, labels_path, data_path, planet_name, output_folder_path)
+            tycho_cdm.tycho.write_results(results, labels_path, data_path, output_folder_path)
         except RuntimeError as runtime_error:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)

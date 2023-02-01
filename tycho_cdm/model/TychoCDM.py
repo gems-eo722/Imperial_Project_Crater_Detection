@@ -12,14 +12,22 @@ from mmyolo.utils import register_all_modules
 
 class TychoCDM:
 
-    def __init__(self, weights_file_path):
+    def __init__(self, planet_name):
         config_path = Path(os.path.realpath(__file__)).parent.joinpath('configs/yolov5_m_v61.py')
-        self.weights_file_path = weights_file_path
+
+        mars_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/epoch_80.pth').__str__()     # TODO
+        moon_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/epoch_80.pth').__str__()     # TODO
+        self.weights_file_path = \
+            mars_path if planet_name.lower() == 'mars' \
+            else (moon_path if planet_name.lower() == 'moon' else None)
+
+        if self.weights_file_path is None:
+            raise RuntimeError(f"Invalid planet name: {planet_name}")
+
         self.config_path = config_path
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # TODO - load object detection model with weights here
         register_all_modules()
-        self.model = init_detector(self.config_path, weights_file_path, device=self.device)
+        self.model = init_detector(self.config_path, self.weights_file_path, device=self.device)
         print('initializing model')
 
     def single_inference(self, img_path):
@@ -46,23 +54,11 @@ class TychoCDM:
 
     def batch_inference(self, batch_img_path):
         img_name_list = os.listdir(batch_img_path)
-        bbox_result_list = []
-        label_result_list = []
-        confident_result_list = []
+
+        results = []
         for img_name in img_name_list:
             img_path = os.path.join(batch_img_path, img_name)
             bbox, label, score = self.single_inference(img_path)
-            bbox_result_list.append(bbox)
-            label_result_list.append(label)
-            confident_result_list.append(score)
-        return bbox_result_list, label_result_list, confident_result_list
+            results.append((img_path, bbox, label, score))
+        return results
 
-    def predict(self, image_path, label_path=None, data_path=None) -> any:  # TODO - return type
-
-        # TODO - calculate bounding boxes here
-        #   * if label_path is given, also return statistics (FNs, TPs, FPs)
-        #   * if data_path is given, output for each image a .csv file with (lat,long) position
-        #   and diameter (in km) of each crater
-        # returns (bounding_boxes, statistics, crater_data)
-        # `statistics` and `crater_data` may be `None` if inputs didn't provide necessary information
-        pass
