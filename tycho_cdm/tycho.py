@@ -100,6 +100,7 @@ def write_results(results, labels_path, data_path, output_folder_path):
         visualizer.visualize(
             image_path,
             bboxes,
+            confidence[0],
             output_images_path,
             os.path.join(labels_path, labels[i]) if labels is not None else None)
 

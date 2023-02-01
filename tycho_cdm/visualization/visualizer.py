@@ -1,13 +1,12 @@
 import os
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pandas as pd
-from PIL import Image
-from PIL import ImageDraw
 
 
-def visualize(image_path: str, bounding_boxes: [np.ndarray], output_path: str, label_path=None):
+def visualize(image_path: str, bounding_boxes: [np.ndarray], confidence, output_path: str, label_path=None):
     """
     Creates images to visualize the location of predicted bounding boxes, and of the true bounding boxes,
     if available.
@@ -16,40 +15,42 @@ def visualize(image_path: str, bounding_boxes: [np.ndarray], output_path: str, l
     :param bounding_boxes: List of numpy arrays containing in each array the x, y, w, h of a bounding box for the image
     :param output_path: Path to write visualization images to
     :param label_path: Optional, path to .csv file containing true bounding boxes for the input image
-
-    >>> df = pd.read_csv('../../example/Mars_THEMIS_Training/labels/aeolis_30_6.csv', header=None)
-    >>> visualize('../../example/Mars_THEMIS_Training/images/aeolis_30_6.png', df, 'my_output')
     """
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
 
-    input_image = Image.open(image_path)
-    image_name = Path(image_path).name.__str__()
-
-    rgba_image = Image.new("RGB", input_image.size)
-    rgba_image.paste(input_image)
-
     labels = (pd.read_csv(label_path, header=None).to_numpy()) if label_path is not None else None
 
-    visualized_image = rgba_image.copy()
-    draw_bounding_boxes(visualized_image, bounding_boxes, (255, 0, 0))
+    input_image = cv2.imread(image_path)
+    image_name = Path(image_path).name.__str__()
+
+    draw_bounding_boxes(input_image, bounding_boxes, confidence, (0, 0, 255))
 
     if labels is not None:
-        draw_bounding_boxes(visualized_image, labels, (0, 0, 255))
+        draw_bounding_boxes(input_image, labels, confidence, (255, 0, 0), draw_confidence=False)
 
-    visualized_image.save(os.path.join(output_path, image_name), 'PNG')
-
-    visualized_image.close()
-    rgba_image.close()
+    cv2.imwrite(os.path.join(output_path, image_name), input_image)
 
 
-def draw_bounding_boxes(image: Image, bounding_boxes: [np.ndarray], color):
+def draw_bounding_boxes(image: np.ndarray, bounding_boxes: [np.ndarray], confidence, color, draw_confidence=True):
     for bbox in bounding_boxes:
-        draw = ImageDraw.Draw(image)
-        top_left_x, top_left_y, bottom_right_x, bottom_right_y = get_box_corners(bbox, image.width, image.height)
-        draw.rectangle(
-            (top_left_x, top_left_y, bottom_right_x, bottom_right_y),
-            outline=color, width=2)
+        top_left_x, top_left_y, bottom_right_x, bottom_right_y = get_box_corners(bbox, image.shape[1], image.shape[0])
+
+        # Bounding rect
+        cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_right_y), color=color)
+
+        if draw_confidence:
+            write_confidence_text(color, confidence, image, top_left_x, top_left_y)
+
+
+def write_confidence_text(color, confidence, image, top_left_x, top_left_y):
+    text = f'crater {confidence:.2}'
+    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+    # Text background
+    cv2.rectangle(image, (top_left_x, top_left_y - 20), (top_left_x + text_size[0], top_left_y),
+                  color, -1)
+    cv2.putText(image, text, (top_left_x, int(top_left_y - 5)), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.5, color=(255, 255, 255), thickness=2)
 
 
 def get_box_corners(bbox: np.ndarray, width: int, height: int) -> tuple[int, int, int, int]:
@@ -63,4 +64,5 @@ def get_box_corners(bbox: np.ndarray, width: int, height: int) -> tuple[int, int
     top_left_y = int(bbox[1] * height) - (int(bbox[3] * height) // 2)
     bottom_right_x = top_left_x + int(bbox[2] * width)
     bottom_right_y = top_left_y + int(bbox[3] * height)
+
     return top_left_x, top_left_y, bottom_right_x, bottom_right_y
