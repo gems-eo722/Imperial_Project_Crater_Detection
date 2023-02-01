@@ -5,35 +5,38 @@
 Follow the steps below to create a new virtual environment (`venv`) and install the project's dependencies.
 
 1. Clone this repository using `git clone <url>`
-2. Open a terminal in the repository root, and execute the following commands:
+2. Install conda package manager
+3. Open a terminal in the repository root, and execute the following commands:
 
 ```sh
-$ python -m venv venv
+(base) $ conda update conda
 ```
+
 ```sh
-$ source venv/bin/activate
+(base) $ conda env create -f environment.yml
 ```
+
 ```sh
-(venv) $ pip install --upgrade pip
+(base) $ conda activate acds-moonshot-tycho
 ```
+
 ```sh
-(venv) $ pip install --upgrade setuptools
+(acds-moonshot-tycho) $ conda install pytorch torchvision torchaudio cpuonly -c pytorch
 ```
+
 ```sh
-(venv) $ pip install -r requirements.txt
+(acds-moonshot-tycho) $ mim install "mmengine>=0.3.1"
+(acds-moonshot-tycho) $ mim install "mmcv>=2.0.0rc1,<2.1.0"
+(acds-moonshot-tycho) $ mim install "mmdet>=3.0.0rc5,<3.1.0"
 ```
+
 ```sh
-(venv) $ conda install pytorch torchvision torchaudio cpuonly -c pytorch
-(venv) $ pip install openmim
-(venv) $ mim install "mmengine>=0.3.1"
-(venv) $ mim install "mmcv>=2.0.0rc1,<2.1.0"
-(venv) $ mim install "mmdet>=3.0.0rc5,<3.1.0"
-(venv) $ git clone https://github.com/open-mmlab/mmyolo.git
-cd mmyolo
+(acds-moonshot-tycho) $ git clone https://github.com/open-mmlab/mmyolo.git
+(acds-moonshot-tycho) $ cd mmyolo
 # Install albumentations
-(venv) $ pip install -r requirements/albu.txt
+(acds-moonshot-tycho) $ pip install -r requirements/albu.txt
 # Install MMYOLO
-(venv) $ mim install -v -e .
+(acds-moonshot-tycho) $ mim install -v -e .
 ```
 
 ## Usage

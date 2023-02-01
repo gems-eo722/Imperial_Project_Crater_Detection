@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QStackedWidget, QPush
     QGridLayout, QVBoxLayout, QComboBox, QSpacerItem, QMessageBox
 
 import tycho_cdm.tycho
+from tycho_cdm.model.TychoCDM import TychoCDM
 
 
 class TychoGUI(QWidget):
@@ -181,7 +182,9 @@ class TychoGUI(QWidget):
                 tycho_cdm.tycho.process_arguments(
                     self.weights_file_path, self.input_folder_path, self.output_folder_path, self.planet_name)
 
-            tycho_cdm.tycho.run_batch(weights_file_path, images_path, labels_path, data_path, planet_name)
+            model = TychoCDM(weights_file_path)
+            results = model.batch_inference(images_path)
+            tycho_cdm.tycho.write_results(results, labels_path, data_path, planet_name, output_folder_path)
         except RuntimeError as runtime_error:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)

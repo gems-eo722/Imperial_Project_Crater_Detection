@@ -161,3 +161,6 @@ cython_debug/
 example
 
 img_list/
+
+mm_yolo/
+weights/

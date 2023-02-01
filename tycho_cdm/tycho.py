@@ -8,7 +8,9 @@ def main():
     parser = make_parser()
     weights_file_path, images_path, labels_path, data_path, planet_name, output_path = parse_arguments(parser)
 
-    results = run_batch(weights_file_path, images_path, labels_path, data_path, planet_name)
+    model = TychoCDM(weights_file_path)
+    results = model.batch_inference(images_path)
+    # results = run_batch(weights_file_path, images_path, labels_path, data_path, planet_name)
 
     for result in results:
         # bounding_boxes, statistics, crater_data = result
@@ -29,15 +31,16 @@ def run_batch(weights_file_path, images_path, labels_path, data_path, planet_nam
         raise RuntimeError("Number of data files does not match number of images")
 
     model = TychoCDM(weights_file_path)
-    results = []
-    for i in range(len(images)):
-        results.append(
-            model.predict(
-                os.path.join(images_path, images[i]),
-                os.path.join(labels_path, labels[i]) if has_labels else None,
-                os.path.join(data_path, data[i]) if has_data else None))
-
-    return results
+    model.batch_inference(images_path)
+    # results = []
+    # for i in range(len(images)):
+    #     results.append(
+    #         model.predict(
+    #             os.path.join(images_path, images[i]),
+    #             os.path.join(labels_path, labels[i]) if has_labels else None,
+    #             os.path.join(data_path, data[i]) if has_data else None))
+    #
+    # return results
 
 
 def parse_arguments(parser: argparse.ArgumentParser):
@@ -101,3 +104,7 @@ def dir_is_empty(path: str) -> bool:
 
 if __name__ == '__main__':
     main()
+
+
+def write_results(results, labels_path, data_path, planet_name, output_folder_path):
+    bboxes, _, confidences = results
