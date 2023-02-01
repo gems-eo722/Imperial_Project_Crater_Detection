@@ -46,7 +46,21 @@ def visualize(image_path: str, bounding_boxes: [np.ndarray], output_path: str, l
 def draw_bounding_boxes(image: Image, bounding_boxes: [np.ndarray], color):
     for bbox in bounding_boxes:
         draw = ImageDraw.Draw(image)
+        top_left_x, top_left_y, bottom_right_x, bottom_right_y = get_box_corners(bbox, image.width, image.height)
         draw.rectangle(
-            ((int(bbox[0] * image.width), int(bbox[1] * image.height)),
-             (int(bbox[2] * image.width), int(bbox[3] * image.height))),
+            (top_left_x, top_left_y, bottom_right_x, bottom_right_y),
             outline=color, width=2)
+
+
+def get_box_corners(bbox: np.ndarray, width: int, height: int) -> tuple[int, int, int, int]:
+    """
+    :param bbox: Series containing x, y, width, height description of bounding box (where (x, y) is the box center)
+    :param width: Image width in pixels
+    :param height: Image height in pixels
+    :return: Top-left and bottom-right points of bounding box as (x1, y2, x2, y2)
+    """
+    top_left_x = int(bbox[0] * width) - (int(bbox[2] * width) // 2)
+    top_left_y = int(bbox[1] * height) - (int(bbox[3] * height) // 2)
+    bottom_right_x = top_left_x + int(bbox[2] * width)
+    bottom_right_y = top_left_y + int(bbox[3] * height)
+    return top_left_x, top_left_y, bottom_right_x, bottom_right_y

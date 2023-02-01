@@ -21,10 +21,6 @@ Follow the steps below to create a new virtual environment (`venv`) and install 
 ```
 
 ```sh
-(acds-moonshot-tycho) $ conda install pytorch torchvision torchaudio cpuonly -c pytorch
-```
-
-```sh
 (acds-moonshot-tycho) $ mim install "mmengine>=0.3.1"
 (acds-moonshot-tycho) $ mim install "mmcv>=2.0.0rc1,<2.1.0"
 (acds-moonshot-tycho) $ mim install "mmdet>=3.0.0rc5,<3.1.0"
@@ -39,12 +35,19 @@ Follow the steps below to create a new virtual environment (`venv`) and install 
 (acds-moonshot-tycho) $ mim install -v -e .
 ```
 
+Finally, some packages need to be removed/re-installed to get both pytorch and PyQt5 to work together:
+```sh
+(acds-moonshot-tycho) $ pip uninstall opencv-python
+(acds-moonshot-tycho) $ pip install opencv-python-headless
+(acds-moonshot-tycho) $ pip install pyqt5
+```
+
 ## Usage
 
-Open a terminal in the project root, and ensure that the virtual environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
+Open a terminal in the project root, and ensure that the conda environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
 
 ```sh
-(venv) $ python tycho_cdm/tycho.py -h
+(acds-moonshot-tycho) $ python tycho_cdm/tycho.py -h
 ```
 
 Using `-i`, provide the program with a path to an input directory. It must have the following structure:
