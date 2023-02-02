@@ -1,10 +1,11 @@
-import pandas as pd
-from sklearn.cluster import KMeans
 import cv2
 import os
+import pandas as pd
+from sklearn.cluster import KMeans
 import numpy as np
 from math import cos, radians
 import matplotlib.pyplot as plt
+from collections import Counter
 
 
 def iou(BBGT, imgRect):
@@ -18,7 +19,7 @@ def iou(BBGT, imgRect):
     return iou
 
 
-class MoonDataset:
+class ImageSplitter:
     def __init__(self, csv_file):
         df = pd.read_csv(csv_file)
         df_s = df[["LAT_CIRC_IMG", "LON_CIRC_IMG", "DIAM_CIRC_IMG"]].dropna()
@@ -45,11 +46,12 @@ class MoonDataset:
     def genClass(self, n_cluster):
         l = self.data[:, -1].reshape(-1, 1)
         self.labels = KMeans(n_clusters=n_cluster).fit_predict(l)
+        self.c = Counter(self.labels)
 
     def genCoordFile(self):
         file_os = []
         for i in range(4):
-            file_os.append(open(self.Names[i] + ".csv", "w"))
+            file_os.append(open(os.path.join("data", self.Names[i] + ".csv", "w")))
 
         for i, (lat, long, l) in enumerate(self.data):
             if long > -90:
@@ -77,12 +79,11 @@ class MoonDataset:
         for i in range(4):
             file_os[i].close()
 
-    def split(self, lable, subsize=416, iou_thresh=0.2, gap=50):
-        if not isinstance(lable, list):
-            lable = [lable]
+    def split(self, common, subsize=416, iou_thresh=0.2, gap=50):
+        label = [x[0] for x in self.c.most_common(common)]
         for name in self.Names:
             dirdst = os.path.join("data", name)
-            BBGT = np.asarray(pd.read_csv(name + ".csv"))
+            BBGT = np.asarray(pd.read_csv(os.path.join("data", name + ".csv")))
             img = cv2.imread(os.path.join("Moon_WAC_Training/images", "Lunar_" + name + ".jpg"))
             img_h, img_w = img.shape[:2]
             top = 0
@@ -105,7 +106,7 @@ class MoonDataset:
                     imgrect = np.array([left, top, left + subsize, top + subsize]).astype('float32')
                     ious = iou(BBGT[:, :4].astype('float32'), imgrect)
                     BBpatch = BBGT[ious > iou_thresh]
-                    BBpatch_LABELD = BBpatch[np.in1d(BBpatch[:, -1], lable)]
+                    BBpatch_LABELD = BBpatch[np.in1d(BBpatch[:, -1], label)]
                     ## abandaon images with 0 bboxes
                     if len(BBpatch_LABELD) > 0:
                         split_name = os.path.join(dirdst, name + "_" + str(subsize) + '_' + str(left) + '_' + str(top))
@@ -125,22 +126,3 @@ class MoonDataset:
         plt.xscale("log")
         plt.hist(self.data[:, -1], bins=np.exp(np.linspace(0, 5, 51)))  # bin size = e^0.1
         plt.show()
-
-
-if __name__ == "__main__":
-    s = MoonDataset("Moon_WAC_Training/labels/lunar_crater_database_robbins_train.csv")
-    s.showDistribution()
-
-    for root, dirs, files in os.walk("data/A"):
-        for file in files:
-            if file.endswith("png"):
-                name = file.split(".")[0]
-                img_path = os.path.join(root, file)
-                visual_path = os.path.join("data/visual", file)
-                label_path = os.path.join(root, name + ".txt")
-                img = cv2.imread(img_path)
-                f = open(label_path, "r")
-                for l in f:
-                    x1, y1, x2, y2, _ = l.strip().split(",")
-                    cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
-                cv2.imwrite(visual_path, img)
