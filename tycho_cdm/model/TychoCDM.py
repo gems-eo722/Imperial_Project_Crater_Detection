@@ -32,8 +32,8 @@ class TychoCDM:
         self.model = init_detector(self.config_path, self.weights_file_path, device=self.device)
         print('initializing model')
 
-    def single_inference(self, img_path):
-        image = mmcv.imread(img_path, channel_order='rgb')
+    def single_inference(self, image):
+        # image = mmcv.imread(img_path, channel_order='rgb')
         result = inference_detector(self.model, image)
         score_result = result.pred_instances['scores']
         bbox_result = result.pred_instances['bboxes']
@@ -59,7 +59,8 @@ class TychoCDM:
 
         results = []
         for i, img_path in enumerate(img_name_list):
-            bboxes, labels, scores = self.single_inference(img_path)
+            image = mmcv.imread(img_path, channel_order='rgb')
+            bboxes, labels, scores = self.single_inference(image)
             results.append((img_path, bboxes, labels, scores))
             if gui_worker is not None:
                 gui_worker.progress.emit(i + 1)

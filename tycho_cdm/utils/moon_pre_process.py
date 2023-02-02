@@ -1,15 +1,20 @@
-import cv2
 import os
+from collections import Counter
+from math import cos, radians
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
-import numpy as np
-from math import cos, radians
-import matplotlib.pyplot as plt
-from collections import Counter
 
 
 def iou(BBGT, imgRect):
     """
+    TODO
+    :param BBGT:
+    :param imgRect:
+    :return:
     """
     left_top = np.maximum(BBGT[:, :2], imgRect[:2])
     right_bottom = np.minimum(BBGT[:, 2:], imgRect[2:])

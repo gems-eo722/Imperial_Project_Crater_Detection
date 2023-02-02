@@ -1,7 +1,5 @@
 import numpy as np
 
-import numpy as np
-
 
 def NMS(dets, thresh):
     x1 = dets[:, 0]
