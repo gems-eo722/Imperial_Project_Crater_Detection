@@ -42,6 +42,14 @@ Finally, some packages need to be removed/re-installed to get both pytorch and P
 (acds-moonshot-tycho) $ pip install pyqt5
 ```
 
+## Obtaining Weight Files
+
+Please download the weight files for the moon and mars from Google Drive:
+
+**TODO add drive link**
+
+Place these files in `tycho_cdm/model/weights`. Please ensure that the names of the weight files are not changed during download/saving.
+
 ## Usage
 
 Open a terminal in the project root, and ensure that the conda environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
