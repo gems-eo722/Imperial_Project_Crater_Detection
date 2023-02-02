@@ -14,29 +14,31 @@ from tycho_cdm.visualization import visualizer
 
 def main():
     parser = make_parser()
-    images_path, labels_path, data_path, planet_name, output_path = parse_arguments(parser)
+    images_folder, labels_folder, metadata_folder, planet_name, output_folder = parse_arguments(parser)
 
     model = TychoCDM(planet_name)
-    results = model.batch_inference(images_path)
+    results = model.batch_inference(images_folder)
 
-    write_results(results, labels_path, data_path, output_path)
+    write_results(results, labels_folder, metadata_folder, output_folder)
 
 
-def run_batch(images_path, labels_path, data_path, planet_name) -> any:  # TODO - return type
-    images = sorted(glob.glob(os.path.join(images_path, '*')))
-    labels = sorted(glob.glob(os.path.join(labels_path, '*'))) if labels_path is not None else []
-    data = sorted(glob.glob(os.path.join(data_path, '*'))) if data_path is not None else []
+def run_batch(images_directory, labels_directory, metadata_directory, planet_name) -> any:  # TODO - return type
+    image_file_paths = sorted(glob.glob(os.path.join(images_directory, '*')))
+    label_file_paths = sorted(glob.glob(os.path.join(labels_directory, '*'))) \
+        if labels_directory is not None else []
+    metadata_file_paths = sorted(glob.glob(os.path.join(metadata_directory, '*'))) \
+        if metadata_directory is not None else []
 
-    has_labels = len(labels) > 0
-    has_data = len(data) > 0
+    has_labels = len(label_file_paths) > 0
+    has_metadata = len(metadata_file_paths) > 0
 
-    if has_labels and len(labels) != len(images):
+    if has_labels and len(label_file_paths) != len(image_file_paths):
         raise RuntimeError("Number of label files does not match number of images")
-    if has_data and len(data) != len(images):
-        raise RuntimeError("Number of data files does not match number of images")
+    if has_metadata and len(metadata_file_paths) != len(image_file_paths):
+        raise RuntimeError("Number of metadata files does not match number of images")
 
     model = TychoCDM(planet_name)
-    model.batch_inference(images_path)
+    model.batch_inference(images_directory)
 
 
 def parse_arguments(parser: argparse.ArgumentParser):
@@ -51,7 +53,7 @@ def parse_arguments(parser: argparse.ArgumentParser):
 
 def process_arguments(input_path: str, output_path: str, planet_name: str):
     labels_path = os.path.join(input_path, 'labels')
-    data_path = os.path.join(input_path, 'data')
+    metadata_path = os.path.join(input_path, 'data')
     images_path = os.path.join(input_path, 'images')
 
     if not os.path.isdir(input_path):
@@ -60,8 +62,8 @@ def process_arguments(input_path: str, output_path: str, planet_name: str):
     if not os.path.isdir(labels_path):
         labels_path = None
 
-    if not os.path.isdir(data_path):
-        data_path = None
+    if not os.path.isdir(metadata_path):
+        metadata_path = None
 
     if not os.path.isdir(images_path):
         raise RuntimeError('Input directory does not contain \'images\' subdirectory')
@@ -74,7 +76,7 @@ def process_arguments(input_path: str, output_path: str, planet_name: str):
     if planet_name.lower() != 'moon' and planet_name.lower() != 'mars':
         raise RuntimeError('The planet name must be \'mars\' or \'moon\'')
 
-    return images_path, labels_path, data_path, planet_name, output_path
+    return images_path, labels_path, metadata_path, planet_name, output_path
 
 
 def make_parser():
@@ -92,51 +94,53 @@ def dir_is_empty(path: str) -> bool:
     return not os.listdir(path)
 
 
-def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
+def plot_distribution_graph(folder_path, file_name, bboxes, metadata=None):
     """
-    >>> boxes = np.random.random((800, 4))
-    >>> plot_distribution_graph('/', 'f', boxes)
+    >>> boxes = np.random.random((10000, 4))
+    >>> plot_distribution_graph('./', 'f', boxes)
     """
-    widths = np.array([box[2] for box in bboxes])
-    heights = np.array([box[3] for box in bboxes])
+    widths = [box[2] for box in bboxes]
+    heights = [box[3] for box in bboxes]
 
     metres_per_pixel = None
-    if data is None:
+    if metadata is None:
         metres_per_pixel = 100
     else:
-        pass  # TODO - set metres per pixel from data
+        pass  # TODO - set metres per pixel from metadata
 
     sns.set()
-    if data is None:
-        # No data, assume diameter is the longest line inside rectangle (top-left to bottom-right, Pythagoras)
-        plot = sns.displot(np.sqrt((widths * metres_per_pixel) ** 2 + (heights * metres_per_pixel) ** 2) / 1000,
-                           kind='hist', log_scale=10, aspect=2)
+    if metadata is None:
+        # No metadata, calculate diameter as mean of width and height of bounding rect
+        plot = sns.displot(
+            ([(w + h) / 2000 for (w, h) in (zip(widths * metres_per_pixel, heights * metres_per_pixel))]),
+            kind='hist', log_scale=10, aspect=2)
 
         plt.xscale('log')
         plt.yscale('log')
     else:
-        plot = None  # TODO - plot actual diameters, contained in data
+        plot = None  # TODO - plot actual diameters, contained in metadata
 
-    plt.xlabel("Crater Diameter ($km^2$)")
+    plt.xlabel("Crater Diameter (km)")
     plt.title("Size-Frequency Distribution of Crater Sizes")
 
     plot.savefig(os.path.join(folder_path, f'{file_name}.png'))
     plt.close(plot.fig)
 
 
-def write_results(results, labels_path, data_path, output_folder_path):
+def write_results(results, labels_directory, metadata_directory, output_folder_path):
     # Create mandatory output subdirectories
     detections_path = os.path.join(output_folder_path, 'detections')
     output_images_path = os.path.join(output_folder_path, 'images')
+    statistics_path = os.path.join(output_folder_path, 'statistics')
     os.makedirs(detections_path)
     os.makedirs(output_images_path)
-
-    # Get paths to each label file, if present
-    labels = sorted(glob.glob(os.path.join(labels_path, '*'))) if labels_path is not None else None
-    data = sorted(glob.glob(os.path.join(data_path, '*'))) if data_path is not None else None
-
-    statistics_path = os.path.join(output_folder_path, 'statistics')
     os.makedirs(statistics_path)
+
+    # Get paths to each label and metadata file, if present
+    label_file_paths = sorted(glob.glob(os.path.join(labels_directory, '*'))) \
+        if labels_directory is not None else None
+    metadata_file_paths = sorted(glob.glob(os.path.join(metadata_directory, '*'))) \
+        if metadata_directory is not None else None
 
     for i, (image_path, bboxes, _, confidences) in enumerate(results):
         file_name = Path(image_path).name[:-4]
@@ -147,22 +151,23 @@ def write_results(results, labels_path, data_path, output_folder_path):
             bboxes,
             confidences,
             output_images_path,
-            labels[i] if labels is not None else None)
+            label_file_paths[i] if label_file_paths is not None else None)
 
         # Write the bounding boxes for this image to a .csv file in detections/
-        # If auxiliary data was given, this also writes crater position and diameter
+        # If metadata was given, this also writes crater position and diameter
         with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
-            if data is not None:
+            if metadata_file_paths is not None:
+                # (lat, long), size = something(bboxes, ref_data_paths[i])
                 pass  # TODO - append lat,long,diameter to bboxes array
             pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
 
-        if data is not None:
-            plot_distribution_graph(statistics_path, file_name, bboxes, data[i])
+        if metadata_file_paths is not None:
+            plot_distribution_graph(statistics_path, file_name, bboxes, metadata_file_paths[i])
         else:
             plot_distribution_graph(statistics_path, file_name, bboxes)
 
     # If we were given labels, then statistics can be calculated here
-    if labels_path is not None and labels_path != "":
+    if labels_directory is not None and labels_directory != "":
         pass  # TODO - output stats (TP, FN, FP) - only 1 stats file for ALL images
 
 

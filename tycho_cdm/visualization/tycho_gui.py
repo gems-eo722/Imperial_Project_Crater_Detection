@@ -22,8 +22,8 @@ class TychoGUI(QWidget):
         self.batch_size = None
         self.batch_results = None
         self.planet_name = None
-        self.output_folder_path = None
-        self.input_folder_path = None
+        self.output_folder = None
+        self.input_folder = None
 
         # Main page elements
         self.batch_mode_button = QPushButton("Start")
@@ -88,12 +88,12 @@ class TychoGUI(QWidget):
 
         input_select_button = QPushButton("Select input folder")
         input_select_button.clicked.connect(
-            lambda: self.choose_file_or_folder_to_field("input_folder_path", self.select_folder, "Select input folder"))
+            lambda: self.choose_file_or_folder_to_field("input_folder", self.select_folder, "Select input folder"))
         self.input_folder_path_text = QLabel("")
 
         output_select_button = QPushButton("Select output folder")
         output_select_button.clicked.connect(
-            lambda: self.choose_file_or_folder_to_field("output_folder_path", self.select_folder,
+            lambda: self.choose_file_or_folder_to_field("output_folder", self.select_folder,
                                                         "Select output folder"))
         self.output_folder_path_text = QLabel("")
 
@@ -140,8 +140,8 @@ class TychoGUI(QWidget):
         self.planet_selection_dropdown.setCurrentIndex(0)
         self.batch_submit_button.setEnabled(False)
 
-        self.input_folder_path = None
-        self.output_folder_path = None
+        self.input_folder = None
+        self.output_folder = None
         self.planet_name = None
 
         self.input_folder_path_text.setText("")
@@ -158,8 +158,8 @@ class TychoGUI(QWidget):
             self.clear_progress_bar()
 
     def is_batch_form_complete(self):
-        return self.input_folder_path is not None \
-            and self.output_folder_path is not None \
+        return self.input_folder is not None \
+            and self.output_folder is not None \
             and self.planet_name is not None
 
     def update_submit_button(self):
@@ -198,14 +198,14 @@ class TychoGUI(QWidget):
             self.clear_progress_bar()
 
         try:
-            images_path, labels_path, data_path, planet_name, output_folder_path = \
+            images_path, labels_folder, metadata_folder, planet_name, output_folder = \
                 tycho.process_arguments(
-                    self.input_folder_path, self.output_folder_path, self.planet_name)
+                    self.input_folder, self.output_folder, self.planet_name)
 
             self.batch_size = len(os.listdir(images_path))
 
             model = TychoCDM(planet_name)
-            self.spawn_inference_thread(model, images_path, labels_path, data_path, output_folder_path)
+            self.spawn_inference_thread(model, images_path, labels_folder, metadata_folder, output_folder)
         except RuntimeError as runtime_error:
             self.batch_submit_button.setEnabled(True)
             self.message_popup(runtime_error.args[0], "Error", QMessageBox.Critical)
