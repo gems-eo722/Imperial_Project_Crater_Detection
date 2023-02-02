@@ -111,6 +111,10 @@ def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
         # No data, assume diameter is the longest line inside rectangle (top-left to bottom-right, Pythagoras)
         plot = sns.displot(np.sqrt((widths * metres_per_pixel) ** 2 + (heights * metres_per_pixel) ** 2) / 1000,
                            kind='hist')
+
+        # Reduce number of decimal places to 3 (avoid overlapping tick labels)
+        x_labels = ['{:,.3f}'.format(x) for x in plot.ax.get_xticks()]
+        plot.ax.set_xticks(np.arange(len(x_labels)), x_labels)
     else:
         plot = None     # TODO - plot actual diameters, contained in data
 
