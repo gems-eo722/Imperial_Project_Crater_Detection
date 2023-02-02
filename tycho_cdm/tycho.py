@@ -1,75 +1,86 @@
 import argparse
+import glob
 import os
+from pathlib import Path
 
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from tycho_cdm.utils.coordinate_conversions import get_lat_long_and_diameter
 from tycho_cdm.model.TychoCDM import TychoCDM
+from tycho_cdm.utils.post_process import xyxy2xywh
+from tycho_cdm.visualization import visualizer
 
 
 def main():
+    """
+    Starts the program when using the command line.
+    """
     parser = make_parser()
-    weights_file_path, images_path, labels_path, additional_data_path = parse_arguments(parser)
+    input_folder, output_folder, planet_name = parse_arguments(parser)
 
-    images = os.listdir(images_path)
-    labels = os.listdir(labels_path) if labels_path is not None else []
-    data = os.listdir(additional_data_path) if additional_data_path is not None else []
+    images_folder, labels_folder, metadata_folder, planet_name, output_folder = \
+        process_arguments(input_folder, output_folder, planet_name)
 
-    has_labels = len(labels) > 0
-    has_data = len(data) > 0
+    model = TychoCDM(planet_name)
+    results = model.batch_inference(images_folder)
 
-    if has_labels and len(labels) != len(images):
-        parser.error("Number of label files does not match number of images")
-    if has_data and len(data) != len(images):
-        parser.error("Number of data files does not match number of images")
-
-    model = TychoCDM(weights_file_path)
-    results = []
-    for i in range(len(images)):
-        results.append(model.predict(images[i], labels[i] if has_labels else None, data[i] if has_data else None))
-
-    for result in results:
-        # bounding_boxes, statistics, crater_data = result
-        pass  # TODO - generate bounding box visualizations, make plots, etc. (output / visualization)
+    write_results(results, labels_folder, metadata_folder, output_folder)
 
 
-def parse_arguments(parser: argparse.ArgumentParser) -> tuple[str, str, str, str]:
+def parse_arguments(parser: argparse.ArgumentParser):
+    """
+    Uses the given parser to parse the required command line arguments.
+    :param parser:
+    :return: The paths to the input folder and output folder, and the planet name
+    """
     args = parser.parse_args()
+    return args.input_folder, args.output_folder, args.planet_name
 
-    weights_file_path: str = args.weights_file_path
-    if not os.path.isfile(weights_file_path):
-        parser.error(f'Given path to weights file is invalid: {weights_file_path}')
 
-    if not os.path.isdir(args.input_path):
-        parser.error(f'Given path to input directory is invalid: {args.input_path}')
+def process_arguments(input_folder: str, output_folder: str, planet_name: str):
+    """
+    TODO
+    :param input_folder:
+    :param output_folder:
+    :param planet_name:
+    :return:
+    """
+    labels_folder = os.path.join(input_folder, 'labels')
+    metadata_folder = os.path.join(input_folder, 'data')
+    images_folder = os.path.join(input_folder, 'images')
 
-    labels_path = os.path.join(args.input_path, 'labels')
-    if not os.path.isdir(labels_path):
-        labels_path = None
+    if not os.path.isdir(input_folder):
+        raise RuntimeError(f'Given path to input directory is invalid: {input_folder}')
 
-    data_path = os.path.join(args.input_path, 'data')
-    if not os.path.isdir(data_path):
-        data_path = None
+    if not os.path.isdir(labels_folder):
+        labels_folder = None
 
-    images_path = os.path.join(args.input_path, 'images')
-    if not os.path.isdir(images_path):
-        parser.error('Input directory does not contain \'images\' subdirectory')
-    if dir_is_empty(images_path):
-        parser.error('\'image\' subdirectory is empty, nothing to do')
+    if not os.path.isdir(metadata_folder):
+        metadata_folder = None
 
-    if (os.path.isdir(args.output_path)) and not dir_is_empty(args.output_path):
-        parser.error('Output directory exists and is not empty')
+    if not os.path.isdir(images_folder):
+        raise RuntimeError('Input directory does not contain \'images\' subdirectory')
+    if dir_is_empty(images_folder):
+        raise RuntimeError('\'image\' subdirectory is empty, nothing to do')
 
-    if args.planet_name.lower() != 'moon' and args.planet_name.lower() != 'mars':
-        parser.error('The planet name must be \'mars\' or \'moon\'')
+    if (os.path.isdir(output_folder)) and not dir_is_empty(output_folder):
+        raise RuntimeError('Please choose an output directory that is empty')
 
-    return weights_file_path, images_path, labels_path, data_path
+    if planet_name.lower() != 'moon' and planet_name.lower() != 'mars':
+        raise RuntimeError('The planet name must be \'mars\' or \'moon\'')
+
+    return images_folder, labels_folder, metadata_folder, planet_name, output_folder
 
 
 def make_parser():
     parser = argparse.ArgumentParser(description='Tycho CDM')
-    parser.add_argument('-w', '--weights', dest='weights_file_path', type=str, required=True,
-                        help='Path to weights file for object detection model')
-    parser.add_argument('-i', '--input', dest='input_path', type=str, required=True,
+    parser.add_argument('-i', '--input', dest='input_folder', type=str, required=True,
                         help='Path to input folder')
-    parser.add_argument('-o', '--output', dest='output_path', type=str, required=True,
+    parser.add_argument('-o', '--output', dest='output_folder', type=str, required=True,
                         help='Path to output folder')
     parser.add_argument('-p', '--planet_name', dest='planet_name', type=str, required=True,
                         help='Name of the planet, either \'mars\' or \'moon\'')
@@ -80,5 +91,99 @@ def dir_is_empty(path: str) -> bool:
     return not os.listdir(path)
 
 
+def plot_distribution_graph(folder_path, file_name, bboxes, diameters=None, resolution=100):
+    """
+    >>> boxes = np.random.random((10000, 4))
+    >>> plot_distribution_graph('./', 'f', boxes)
+    """
+    widths = [box[2] for box in bboxes]
+    heights = [box[3] for box in bboxes]
+
+    sns.set()
+    if diameters is None:
+        # No metadata, calculate diameter as mean of width and height of bounding rect
+        plot = sns.displot(
+            ([(w + h) / 2000 for (w, h) in (zip(widths * resolution, heights * resolution))]),
+            kind='hist', log_scale=10, aspect=2)
+
+        plt.xscale('log')
+        plt.yscale('log')
+    else:
+        plot = sns.displot(diameters, kind='hist', log_scale=10, aspect=2)
+
+        plt.xscale('log')
+        plt.yscale('log')
+
+    plt.xlabel("Crater Diameter (km)")
+    plt.title("Size-Frequency Distribution of Crater Sizes")
+
+    plot.savefig(os.path.join(folder_path, f'{file_name}.png'))
+    plt.close(plot.fig)
+
+
+def write_results(results, labels_directory, metadata_directory, output_folder_path):
+    # Create mandatory output subdirectories
+    detections_path = os.path.join(output_folder_path, 'detections')
+    output_images_path = os.path.join(output_folder_path, 'images')
+    statistics_path = os.path.join(output_folder_path, 'statistics')
+    os.makedirs(detections_path)
+    os.makedirs(output_images_path)
+    os.makedirs(statistics_path)
+
+    # Get paths to each label and metadata file, if present
+    label_file_paths = sorted(glob.glob(os.path.join(labels_directory, '*'))) \
+        if labels_directory is not None else None
+    metadata_file_paths = sorted(glob.glob(os.path.join(metadata_directory, '*'))) \
+        if metadata_directory is not None else None
+
+    for i, (image_path, bboxes, _, confidences) in enumerate(results):
+        file_name = Path(image_path).name[:-4]
+
+        # Create a visualization of bounding boxes over each image (and ground truth boxes, if applicable)
+        visualizer.visualize(
+            image_path,
+            bboxes,
+            confidences,
+            output_images_path,
+            label_file_paths[i] if label_file_paths is not None else None)
+
+        image = cv2.imread(image_path)
+
+        bboxes_xywh = xyxy2xywh(bboxes).astype(np.float64)
+        bboxes_xywh[:, 0] /= float(image.shape[1])
+        bboxes_xywh[:, 2] /= float(image.shape[1])
+        bboxes_xywh[:, 1] /= float(image.shape[0])
+        bboxes_xywh[:, 3] /= float(image.shape[0])
+
+        # Write the bounding boxes for this image to a .csv file in detections/
+        # If metadata was given, this also writes crater position and diameter
+        with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
+            if metadata_file_paths is not None:
+                # read image_path
+                # read metadata
+                # box impath long lat height_degree width_degree resolution
+                # (lat, long), size = something(bboxes, image_path, metadata_paths[i])
+                metadata = pd.read_csv(metadata_file_paths[i], header=None).to_numpy()
+                if metadata.shape != (1, 5):
+                    raise RuntimeError(f"Expected {metadata_file_paths[i]} to have shape (1, 5), but was {metadata.shape}")
+                metadata = metadata[0]
+                lats, longs, diameters = get_lat_long_and_diameter(bboxes_xywh, image.shape[0], image.shape[1], metadata[0], metadata[1], metadata[2], metadata[3], metadata[4])
+
+                metadata_df = pd.DataFrame([lats, longs, diameters]).T
+                bboxes_df = pd.DataFrame(bboxes_xywh)
+                pd.concat([bboxes_df, metadata_df], axis=1).to_csv(bbox_file, header=False, index=False)
+            else:
+                pd.DataFrame(bboxes_xywh).to_csv(bbox_file, header=False, index=False)
+
+        if metadata_file_paths is not None:
+            plot_distribution_graph(statistics_path, file_name, bboxes_xywh, diameters, metadata[4])
+        else:
+            plot_distribution_graph(statistics_path, file_name, bboxes_xywh)
+
+    # If we were given labels, then statistics can be calculated here
+    if labels_directory is not None and labels_directory != "":
+        pass  # TODO - output stats (TP, FN, FP) - only 1 stats file for ALL images
+
+
 if __name__ == '__main__':
-    main()
+    main()  # Don't run this directly - use the command line or GUI instead. See README file.

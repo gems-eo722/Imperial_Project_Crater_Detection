@@ -159,3 +159,13 @@ cython_debug/
 
 # Other / Misc
 example
+
+img_list/
+
+mm_yolo/
+mmyolo/
+tycho_cdm/model/weights/**
+
+data/
+Mars_THEMIS_Training/
+Moon_WAC_Training/
