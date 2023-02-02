@@ -13,8 +13,14 @@ from tycho_cdm.visualization import visualizer
 
 
 def main():
+    """
+    Starts the program when using the command line.
+    """
     parser = make_parser()
-    images_folder, labels_folder, metadata_folder, planet_name, output_folder = parse_arguments(parser)
+    input_folder, output_folder, planet_name = parse_arguments(parser)
+
+    images_folder, labels_folder, metadata_folder, planet_name, output_folder = \
+        process_arguments(input_folder, output_folder, planet_name)
 
     model = TychoCDM(planet_name)
     results = model.batch_inference(images_folder)
@@ -22,68 +28,56 @@ def main():
     write_results(results, labels_folder, metadata_folder, output_folder)
 
 
-def run_batch(images_directory, labels_directory, metadata_directory, planet_name) -> any:  # TODO - return type
-    image_file_paths = sorted(glob.glob(os.path.join(images_directory, '*')))
-    label_file_paths = sorted(glob.glob(os.path.join(labels_directory, '*'))) \
-        if labels_directory is not None else []
-    metadata_file_paths = sorted(glob.glob(os.path.join(metadata_directory, '*'))) \
-        if metadata_directory is not None else []
-
-    has_labels = len(label_file_paths) > 0
-    has_metadata = len(metadata_file_paths) > 0
-
-    if has_labels and len(label_file_paths) != len(image_file_paths):
-        raise RuntimeError("Number of label files does not match number of images")
-    if has_metadata and len(metadata_file_paths) != len(image_file_paths):
-        raise RuntimeError("Number of metadata files does not match number of images")
-
-    model = TychoCDM(planet_name)
-    model.batch_inference(images_directory)
-
-
 def parse_arguments(parser: argparse.ArgumentParser):
+    """
+    Uses the given parser to parse the required command line arguments.
+    :param parser:
+    :return: The paths to the input folder and output folder, and the planet name
+    """
     args = parser.parse_args()
-
-    input_path: str = args.input_path
-    output_path: str = args.output_path
-    planet_name: str = args.planet_name
-
-    return process_arguments(input_path, output_path, planet_name)
+    return args.input_folder, args.output_folder, args.planet_name
 
 
-def process_arguments(input_path: str, output_path: str, planet_name: str):
-    labels_path = os.path.join(input_path, 'labels')
-    metadata_path = os.path.join(input_path, 'data')
-    images_path = os.path.join(input_path, 'images')
+def process_arguments(input_folder: str, output_folder: str, planet_name: str):
+    """
+    TODO
+    :param input_folder:
+    :param output_folder:
+    :param planet_name:
+    :return:
+    """
+    labels_folder = os.path.join(input_folder, 'labels')
+    metadata_folder = os.path.join(input_folder, 'data')
+    images_folder = os.path.join(input_folder, 'images')
 
-    if not os.path.isdir(input_path):
-        raise RuntimeError(f'Given path to input directory is invalid: {input_path}')
+    if not os.path.isdir(input_folder):
+        raise RuntimeError(f'Given path to input directory is invalid: {input_folder}')
 
-    if not os.path.isdir(labels_path):
-        labels_path = None
+    if not os.path.isdir(labels_folder):
+        labels_folder = None
 
-    if not os.path.isdir(metadata_path):
-        metadata_path = None
+    if not os.path.isdir(metadata_folder):
+        metadata_folder = None
 
-    if not os.path.isdir(images_path):
+    if not os.path.isdir(images_folder):
         raise RuntimeError('Input directory does not contain \'images\' subdirectory')
-    if dir_is_empty(images_path):
+    if dir_is_empty(images_folder):
         raise RuntimeError('\'image\' subdirectory is empty, nothing to do')
 
-    if (os.path.isdir(output_path)) and not dir_is_empty(output_path):
+    if (os.path.isdir(output_folder)) and not dir_is_empty(output_folder):
         raise RuntimeError('Output directory exists and is not empty')
 
     if planet_name.lower() != 'moon' and planet_name.lower() != 'mars':
         raise RuntimeError('The planet name must be \'mars\' or \'moon\'')
 
-    return images_path, labels_path, metadata_path, planet_name, output_path
+    return images_folder, labels_folder, metadata_folder, planet_name, output_folder
 
 
 def make_parser():
     parser = argparse.ArgumentParser(description='Tycho CDM')
-    parser.add_argument('-i', '--input', dest='input_path', type=str, required=True,
+    parser.add_argument('-i', '--input', dest='input_folder', type=str, required=True,
                         help='Path to input folder')
-    parser.add_argument('-o', '--output', dest='output_path', type=str, required=True,
+    parser.add_argument('-o', '--output', dest='output_folder', type=str, required=True,
                         help='Path to output folder')
     parser.add_argument('-p', '--planet_name', dest='planet_name', type=str, required=True,
                         help='Name of the planet, either \'mars\' or \'moon\'')
@@ -157,7 +151,10 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
         # If metadata was given, this also writes crater position and diameter
         with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
             if metadata_file_paths is not None:
-                # (lat, long), size = something(bboxes, ref_data_paths[i])
+                # read image_path
+                # read metadata
+                # box impath long lat height_degree width_degree resolution
+                # (lat, long), size = something(bboxes, image_path, metadata_paths[i])
                 pass  # TODO - append lat,long,diameter to bboxes array
             pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
 
