@@ -70,19 +70,3 @@ class TychoCDM:
         if gui_worker is not None:
             gui_worker.finished.emit()
         return results
-
-    def inference(self, image):
-        result = inference_detector(self.model, image)
-        score_result = result.pred_instances['scores']
-        bbox_result = result.pred_instances['bboxes']
-        label_result = result.pred_instances['labels']
-        index = score_result > 0.3
-        if self.device == 'cpu':
-            bbox = bbox_result[index].detach().numpy()
-            label = label_result[index].detach().numpy()
-            score = score_result[index].detach().numpy()
-        else:
-            bbox = bbox_result[index].detach().cpu().numpy()
-            label = label_result[index].detach().cpu().numpy()
-            score = score_result[index].detach().cpu().numpy()
-        return (bbox, label, score)
