@@ -47,7 +47,7 @@ Finally, some packages need to be removed/re-installed to get both pytorch and P
 Open a terminal in the project root, and ensure that the conda environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
 
 ```sh
-(acds-moonshot-tycho) $ python tycho_cdm/tycho.py -h
+(acds-moonshot-tycho) $ python tycho.py -h
 ```
 
 Using `-i`, provide the program with a path to an input directory. It must have the following structure:

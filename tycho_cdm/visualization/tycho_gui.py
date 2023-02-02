@@ -7,7 +7,7 @@ from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QStackedWidget, QPushButton, \
     QGridLayout, QVBoxLayout, QComboBox, QSpacerItem, QMessageBox
 
-import tycho_cdm.tycho
+import tycho
 from tycho_cdm.model.TychoCDM import TychoCDM
 from tycho_cdm.visualization.worker import Worker
 
@@ -200,7 +200,7 @@ class TychoGUI(QWidget):
 
         try:
             images_path, labels_path, data_path, planet_name, output_folder_path = \
-                tycho_cdm.tycho.process_arguments(
+                tycho.process_arguments(
                     self.input_folder_path, self.output_folder_path, self.planet_name)
 
             self.batch_size = len(os.listdir(images_path))
@@ -245,7 +245,7 @@ class TychoGUI(QWidget):
         self.batch_submit_button.setEnabled(True)
 
         # Write outputs and clear thread/worker references
-        tycho_cdm.tycho.write_results(self.batch_results, labels_path, data_path, output_folder_path)
+        tycho.write_results(self.batch_results, labels_path, data_path, output_folder_path)
         self.thread = None
         self.worker = None
 

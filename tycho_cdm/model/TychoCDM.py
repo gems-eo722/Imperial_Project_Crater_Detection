@@ -58,8 +58,7 @@ class TychoCDM:
         img_name_list = sorted(glob.glob(os.path.join(batch_img_path, '*')))
 
         results = []
-        for i, img_name in enumerate(img_name_list):
-            img_path = os.path.join(batch_img_path, img_name)
+        for i, img_path in enumerate(img_name_list):
             bboxes, labels, scores = self.single_inference(img_path)
             results.append((img_path, bboxes, labels, scores))
             if gui_worker is not None:

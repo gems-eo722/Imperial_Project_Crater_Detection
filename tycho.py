@@ -2,11 +2,11 @@ import argparse
 import glob
 import os
 from pathlib import Path
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from tycho_cdm.model.TychoCDM import TychoCDM
 from tycho_cdm.visualization import visualizer
@@ -95,7 +95,7 @@ def dir_is_empty(path: str) -> bool:
 def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
     """
     >>> boxes = np.random.random((800, 4))
-    >>> plot_distribution_graph('./', 'f', boxes)
+    >>> plot_distribution_graph('tycho_cdm/', 'f', boxes)
     """
     widths = np.array([box[2] for box in bboxes])
     heights = np.array([box[3] for box in bboxes])
@@ -104,19 +104,18 @@ def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
     if data is None:
         metres_per_pixel = 100
     else:
-        pass    # TODO - set metres per pixel from data
+        pass  # TODO - set metres per pixel from data
 
     sns.set()
     if data is None:
         # No data, assume diameter is the longest line inside rectangle (top-left to bottom-right, Pythagoras)
         plot = sns.displot(np.sqrt((widths * metres_per_pixel) ** 2 + (heights * metres_per_pixel) ** 2) / 1000,
-                           kind='hist')
+                           kind='hist', log_scale=10, aspect=2)
 
-        # Reduce number of decimal places to 3 (avoid overlapping tick labels)
-        x_labels = ['{:,.3f}'.format(x) for x in plot.ax.get_xticks()]
-        plot.ax.set_xticks(np.arange(len(x_labels)), x_labels)
+        plt.xscale('log')
+        plt.yscale('log')
     else:
-        plot = None     # TODO - plot actual diameters, contained in data
+        plot = None  # TODO - plot actual diameters, contained in data
 
     plt.xlabel("Crater Diameter ($km^2$)")
     plt.title("Size-Frequency Distribution of Crater Sizes")
@@ -148,10 +147,13 @@ def write_results(results, labels_path, data_path, output_folder_path):
             bboxes,
             confidences,
             output_images_path,
-            os.path.join(labels_path, labels[i]) if labels is not None else None)
+            labels[i] if labels is not None else None)
 
         # Write the bounding boxes for this image to a .csv file in detections/
+        # If auxiliary data was given, this also writes crater position and diameter
         with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
+            if data is not None:
+                pass  # TODO - append lat,long,diameter to bboxes array
             pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
 
         if data is not None:
@@ -161,12 +163,8 @@ def write_results(results, labels_path, data_path, output_folder_path):
 
     # If we were given labels, then statistics can be calculated here
     if labels_path is not None and labels_path != "":
-        pass # todo output stats (Precision, Recall, F1, IoU) - only 1 stats file for ALL images
+        pass  # TODO - output stats (Precision, Recall, F1, IoU) - only 1 stats file for ALL images
 
-    if data_path is not None and data_path != "":
-        crater_data_path = os.path.join(output_folder_path, 'crater_data')
-        os.makedirs(crater_data_path)
-        pass  # todo output 1 .csv file per image, which has position and size of each crater in the image
 
 if __name__ == '__main__':
     main()  # Don't run this directly - use the command line or GUI instead. See README file.
