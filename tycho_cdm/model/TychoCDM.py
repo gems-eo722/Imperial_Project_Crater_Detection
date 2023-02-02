@@ -33,7 +33,6 @@ class TychoCDM:
         print('initializing model')
 
     def single_inference(self, image):
-        # image = mmcv.imread(img_path, channel_order='rgb')
         result = inference_detector(self.model, image)
         score_result = result.pred_instances['scores']
         bbox_result = result.pred_instances['bboxes']

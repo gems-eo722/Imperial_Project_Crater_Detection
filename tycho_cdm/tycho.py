@@ -3,11 +3,13 @@ import glob
 import os
 from pathlib import Path
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from tycho_cdm.utils.coordinate_conversions import convert2loc
 from tycho_cdm.model.TychoCDM import TychoCDM
 from tycho_cdm.visualization import visualizer
 
@@ -65,7 +67,7 @@ def process_arguments(input_folder: str, output_folder: str, planet_name: str):
         raise RuntimeError('\'image\' subdirectory is empty, nothing to do')
 
     if (os.path.isdir(output_folder)) and not dir_is_empty(output_folder):
-        raise RuntimeError('Output directory exists and is not empty')
+        raise RuntimeError('Please choose an output directory that is empty')
 
     if planet_name.lower() != 'moon' and planet_name.lower() != 'mars':
         raise RuntimeError('The planet name must be \'mars\' or \'moon\'')
@@ -88,7 +90,7 @@ def dir_is_empty(path: str) -> bool:
     return not os.listdir(path)
 
 
-def plot_distribution_graph(folder_path, file_name, bboxes, metadata=None):
+def plot_distribution_graph(folder_path, file_name, bboxes, diameters):
     """
     >>> boxes = np.random.random((10000, 4))
     >>> plot_distribution_graph('./', 'f', boxes)
@@ -97,13 +99,13 @@ def plot_distribution_graph(folder_path, file_name, bboxes, metadata=None):
     heights = [box[3] for box in bboxes]
 
     metres_per_pixel = None
-    if metadata is None:
+    if diameters is None:
         metres_per_pixel = 100
     else:
         pass  # TODO - set metres per pixel from metadata
 
     sns.set()
-    if metadata is None:
+    if diameters is None:
         # No metadata, calculate diameter as mean of width and height of bounding rect
         plot = sns.displot(
             ([(w + h) / 2000 for (w, h) in (zip(widths * metres_per_pixel, heights * metres_per_pixel))]),
@@ -112,7 +114,10 @@ def plot_distribution_graph(folder_path, file_name, bboxes, metadata=None):
         plt.xscale('log')
         plt.yscale('log')
     else:
-        plot = None  # TODO - plot actual diameters, contained in metadata
+        plot = sns.displot(diameters, kind='hist', log_scale=10, aspect=2)
+
+        plt.xscale('log')
+        plt.yscale('log')
 
     plt.xlabel("Crater Diameter (km)")
     plt.title("Size-Frequency Distribution of Crater Sizes")
@@ -149,17 +154,27 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
 
         # Write the bounding boxes for this image to a .csv file in detections/
         # If metadata was given, this also writes crater position and diameter
+        image = cv2.imread(image_path)
         with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
             if metadata_file_paths is not None:
                 # read image_path
                 # read metadata
                 # box impath long lat height_degree width_degree resolution
                 # (lat, long), size = something(bboxes, image_path, metadata_paths[i])
-                pass  # TODO - append lat,long,diameter to bboxes array
-            pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
+                metadata = pd.read_csv(metadata_file_paths[i], header=None).to_numpy()
+                if metadata.shape != (1, 5):
+                    raise RuntimeError(f"Expected {metadata_file_paths[i]} to have shape (1, 5), but was {metadata.shape}")
+                metadata = metadata[0]
+                lats, longs, diameters = convert2loc(bboxes, image.shape[0], image.shape[1], metadata[0], metadata[1], metadata[2], metadata[3], metadata[4])
+
+                metadata_df = pd.DataFrame([lats, longs, diameters]).T
+                bboxes_df = pd.DataFrame(bboxes)
+                pd.concat([bboxes_df, metadata_df], axis=1).to_csv(bbox_file, header=False, index=False)
+            else:
+                pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
 
         if metadata_file_paths is not None:
-            plot_distribution_graph(statistics_path, file_name, bboxes, metadata_file_paths[i])
+            plot_distribution_graph(statistics_path, file_name, bboxes, diameters)
         else:
             plot_distribution_graph(statistics_path, file_name, bboxes)
 
