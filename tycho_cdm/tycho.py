@@ -95,7 +95,7 @@ def dir_is_empty(path: str) -> bool:
 def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
     """
     >>> boxes = np.random.random((800, 4))
-    >>> plot_distribution_graph('tycho_cdm/', 'f', boxes)
+    >>> plot_distribution_graph('/', 'f', boxes)
     """
     widths = np.array([box[2] for box in bboxes])
     heights = np.array([box[3] for box in bboxes])

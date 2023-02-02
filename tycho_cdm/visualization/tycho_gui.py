@@ -4,10 +4,11 @@ from collections import OrderedDict
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread, Qt
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QStackedWidget, QPushButton, \
     QGridLayout, QVBoxLayout, QComboBox, QSpacerItem, QMessageBox
 
-import tycho
+from tycho_cdm import tycho
 from tycho_cdm.model.TychoCDM import TychoCDM
 from tycho_cdm.visualization.worker import Worker
 
@@ -73,10 +74,12 @@ class TychoGUI(QWidget):
         layout = QGridLayout()
 
         title = QLabel("Tycho CDM")
-        sub_title = QLabel("Software for automatic crater detection on mars and the moon")
+        title.setFont(QFont('sans-serif', 20))
+        sub_title = QLabel("Software for automatic crater\ndetection on mars and the moon")
+        sub_title.setAlignment(Qt.AlignCenter | Qt.AlignTop)
 
         layout.addWidget(title, 0, 0, alignment=Qt.AlignCenter | Qt.AlignBottom)
-        layout.addWidget(sub_title, 1, 0, alignment=Qt.AlignCenter | Qt.AlignTop)
+        layout.addWidget(sub_title, 1, 0)
         layout.addWidget(self.batch_mode_button, 2, 0, alignment=Qt.AlignTop)
         self.page_1.setLayout(layout)
 

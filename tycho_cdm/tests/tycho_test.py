@@ -1,7 +1,7 @@
 import os
 import unittest
 
-import tycho
+from tycho_cdm import tycho
 
 
 class TychoTest(unittest.TestCase):

@@ -5,38 +5,41 @@
 Follow the steps below to create a new virtual environment (`venv`) and install the project's dependencies.
 
 1. Clone this repository using `git clone <url>`
-2. Install conda package manager
+2. Install the [Anaconda package manager](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 3. Open a terminal in the repository root, and execute the following commands:
 
 ```sh
+# Update conda
 (base) $ conda update conda
 ```
 
 ```sh
+# Install the project environment (this may take a few minutes)
 (base) $ conda env create -f environment.yml
 ```
 
 ```sh
+# Activate the environment
 (base) $ conda activate acds-moonshot-tycho
 ```
 
 ```sh
+# Install YOLO dependencies
 (acds-moonshot-tycho) $ mim install "mmengine>=0.3.1"
 (acds-moonshot-tycho) $ mim install "mmcv>=2.0.0rc1,<2.1.0"
 (acds-moonshot-tycho) $ mim install "mmdet>=3.0.0rc5,<3.1.0"
 ```
 
 ```sh
+# Install YOLO from source
 (acds-moonshot-tycho) $ git clone https://github.com/open-mmlab/mmyolo.git
 (acds-moonshot-tycho) $ cd mmyolo
-# Install albumentations
 (acds-moonshot-tycho) $ pip install -r requirements/albu.txt
-# Install MMYOLO
 (acds-moonshot-tycho) $ mim install -v -e .
 ```
 
-Finally, some packages need to be removed/re-installed to get both pytorch and PyQt5 to work together:
 ```sh
+# Some packages need to be removed/re-installed to get both PyTorch and PyQt5 to work together:
 (acds-moonshot-tycho) $ pip uninstall opencv-python
 (acds-moonshot-tycho) $ pip install opencv-python-headless
 (acds-moonshot-tycho) $ pip install pyqt5
@@ -52,13 +55,24 @@ Place these files in `tycho_cdm/model/weights`. Please ensure that the names of 
 
 ## Usage
 
-Open a terminal in the project root, and ensure that the conda environment is active. Run the following command to generate a help message explaining the required and optional program arguments.
+Open a terminal in the project root, and ensure that the `acds-moonshot-tycho` environment is active. 
+
+### From GUI
 
 ```sh
-(acds-moonshot-tycho) $ python tycho.py -h
+(acds-moonshot-tycho) $ python tycho_cdm/visualization/tycho_gui.py
 ```
 
-Using `-i`, provide the program with a path to an input directory. It must have the following structure:
+### From Command Line
+
+Run the following command to generate a help message explaining the required and optional program arguments.
+
+```sh
+(acds-moonshot-tycho) $ python tycho_cdm/tycho.py -h
+```
+
+## Expected Inputs 
+The input directory must have the following structure:
 
 ```
 input_folder/
@@ -79,11 +93,11 @@ input_folder/
     - ...
 ```
 
-Images in the `images/` folder can be in any common image format, e.g., `.png`, `.jpg`, `.jpeg`, `.tif`, `.bmp`, etc. It is expected that all images in the `images/` directory have the same dimensions, e.g., 416x416. The program will automatically segment/resize the input image(s) if they do not match the expected input size for the crater detection model.
+Images in the `images/` folder can be in any common image format, e.g., `.png`, `.jpg`, `.jpeg`, `.tif`, `.bmp`, etc. While the image size is arbitrary, it is still expected that all images in the `images/` directory have the same dimensions, e.g., 416x416. The program will automatically segment/resize the input image(s) if they do not fit into the crater detection model directly.
 
 Label data in the `labels/` folder follows the format outlined in the project summary below.
 
-The `data/` folder is optional and contains a `.csv` file for each image, providing additional information to calculate the position (in lat, long) and diameter (in km) of each crater. The following format is expected:
+**NB**: The `data/` folder is optional and contains a `.csv` file for each image, providing additional information to calculate the position (in lat, long) and diameter (in km) of each crater. The following format is expected:
 
 ```
 image center latitude,image center longitude,image width in degrees,image height in degrees,image resolution in metres per pixel
