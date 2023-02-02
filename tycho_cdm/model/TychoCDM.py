@@ -1,3 +1,4 @@
+import glob
 import os
 from pathlib import Path
 
@@ -54,7 +55,7 @@ class TychoCDM:
         return new_bbox, label, score
 
     def batch_inference(self, batch_img_path, gui_worker: Worker = None):
-        img_name_list = os.listdir(batch_img_path)
+        img_name_list = sorted(glob.glob(os.path.join(batch_img_path, '*')))
 
         results = []
         for i, img_name in enumerate(img_name_list):

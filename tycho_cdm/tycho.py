@@ -1,4 +1,5 @@
 import argparse
+import glob
 import os
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -22,9 +23,9 @@ def main():
 
 
 def run_batch(images_path, labels_path, data_path, planet_name) -> any:  # TODO - return type
-    images = os.listdir(images_path)
-    labels = os.listdir(labels_path) if labels_path is not None else []
-    data = os.listdir(data_path) if data_path is not None else []
+    images = sorted(glob.glob(os.path.join(images_path, '*')))
+    labels = sorted(glob.glob(os.path.join(labels_path, '*'))) if labels_path is not None else []
+    data = sorted(glob.glob(os.path.join(data_path, '*'))) if data_path is not None else []
 
     has_labels = len(labels) > 0
     has_data = len(data) > 0
@@ -128,8 +129,8 @@ def write_results(results, labels_path, data_path, output_folder_path):
     os.makedirs(output_images_path)
 
     # Get paths to each label file, if present
-    labels = os.listdir(labels_path) if labels_path is not None else None
-    data = os.listdir(data_path) if data_path is not None else None
+    labels = sorted(glob.glob(os.path.join(labels_path, '*'))) if labels_path is not None else None
+    data = sorted(glob.glob(os.path.join(data_path, '*'))) if data_path is not None else None
 
     statistics_path = os.path.join(output_folder_path, 'statistics')
     os.makedirs(statistics_path)
