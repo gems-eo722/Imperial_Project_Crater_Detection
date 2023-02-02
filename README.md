@@ -13,10 +13,21 @@ Follow the steps below to create a new virtual environment (`venv`) and install 
 (base) $ conda update conda
 ```
 
+---
+
 ```sh
-# Install the project environment (this may take a few minutes)
-(base) $ conda env create -f environment.yml
+# Install the project environment for CPU-only systems
+(base) $ conda env create -f environment_cpu.yml
 ```
+
+_OR_
+
+```sh
+# Install the project environment for systems with an NVIDIA GPU
+(base) $ conda env create -f environment_cuda.yml
+```
+
+---
 
 ```sh
 # Activate the environment

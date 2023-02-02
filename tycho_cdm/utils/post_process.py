@@ -19,34 +19,48 @@ def xyxy2xywh(boxes):
     return newboxes
 
 
-def NMS(dets, scores, thresh):
-    x1 = dets[:, 0]
-    y1 = dets[:, 1]
-    x2 = dets[:, 2]
-    y2 = dets[:, 3]
+def box_area(boxes: np.ndarray):
+    """
+    :param boxes: [N, 4]
+    :return: [N]
+    """
+    return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
 
-    order = scores.argsort()[::-1]
+def box_iou(box1: np.ndarray, box2: np.ndarray):
+    """
+    :param box1: [N, 4]
+    :param box2: [M, 4]
+    :return: [N, M]
+    """
+    area1 = box_area(box1)  # N
+    area2 = box_area(box2)  # M
+    # broadcasting, 两个数组各维度大小 从后往前对比一致， 或者 有一维度值为1；
+    lt = np.maximum(box1[:, np.newaxis, :2], box2[:, :2])
+    rb = np.minimum(box1[:, np.newaxis, 2:], box2[:, 2:])
+    wh = rb - lt
+    wh = np.maximum(0, wh)  # [N, M, 2]
+    inter = wh[:, :, 0] * wh[:, :, 1]
+    iou = inter / (area1[:, np.newaxis] + area2 - inter)
+    return iou  # NxM
 
-    temp = []
-    while order.size > 0:
-        i = order[0]
-        temp.append(i)
 
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.minimum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.maximum(y2[i], y2[order[1:]])
+def numpy_nms(boxes: np.ndarray, scores: np.ndarray, iou_threshold: float):
+    idxs = scores.argsort()  # 按分数 降序排列的索引 [N]
+    keep = []
+    while idxs.size > 0:  # 统计数组中元素的个数
+        max_score_index = idxs[-1]
+        max_score_box = boxes[max_score_index][None, :]
+        keep.append(max_score_index)
 
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
-        ovr = inter / (areas[i] + areas[order[1:]] - inter)
+        if idxs.size == 1:
+            break
+        idxs = idxs[:-1]  # 将得分最大框 从索引中删除； 剩余索引对应的框 和 得分最大框 计算IoU；
+        other_boxes = boxes[idxs]  # [?, 4]
+        ious = box_iou(max_score_box, other_boxes)  # 一个框和其余框比较 1XM
+        idxs = idxs[ious[0] <= iou_threshold]
 
-        inds = np.where(ovr <= thresh)[0]
-        order = order[inds + 1]
-    return temp
+    return keep
 
 
 def inference(img_orig, model):
@@ -76,14 +90,14 @@ def inference(img_orig, model):
         all_scores = np.concatenate(all_scores, axis=0)
         if len(all_boxes) != len(all_scores):
             raise RuntimeError("Labels out of sync with boxes")
-        indexes = NMS(all_boxes, all_scores, 0.5)
+        indexes = numpy_nms(all_boxes, all_scores, 0.5)
         return all_boxes[indexes].astype(np.int), None, all_scores[indexes]
 
 
 def split(img, subsize: int):
     position = []
     split_imgs = []
-    gap = 0 # not needed anymore
+    gap = 0  # not needed anymore
     img_h, img_w = img.shape[:2]
     top = 0
     reachbottom = False
