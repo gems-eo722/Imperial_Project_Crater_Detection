@@ -117,7 +117,7 @@ def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
     plt.title("Size-Frequency Distribution of Crater Sizes")
 
     plot.savefig(os.path.join(folder_path, f'{file_name}.png'))
-    plt.close(plot)
+    plt.close(plot.fig)
 
 
 def write_results(results, labels_path, data_path, output_folder_path):
