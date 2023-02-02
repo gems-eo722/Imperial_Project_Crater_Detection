@@ -3,7 +3,7 @@ import sys
 from collections import OrderedDict
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QStackedWidget, QPushButton, \
     QGridLayout, QVBoxLayout, QComboBox, QSpacerItem, QMessageBox
 
@@ -20,32 +20,29 @@ class TychoGUI(QWidget):
         # Variables to extract from UI
         self.batch_size = None
         self.batch_results = None
-        self.worker = None
-        self.thread = None
         self.planet_name = None
         self.output_folder_path = None
         self.input_folder_path = None
 
         # Main page elements
-        self.batch_mode_button = QPushButton("Batch mode\n(Specify input folder)")
-        self.single_mode_button = QPushButton("Single image mode")
+        self.batch_mode_button = QPushButton("Start")
 
         # Batch page elements
         self.output_folder_path_text = None
         self.input_folder_path_text = None
         self.planet_selection_dropdown = None
         self.batch_submit_button = None
+        self.worker = None
+        self.thread = None
         self.progress_bar = QtWidgets.QProgressBar()
 
         # Define pages
         self.page_1 = QWidget()
         self.page_2 = QWidget()
-        self.page_3 = QWidget()
 
         # Fill pages
         self.fill_page_1()
         self.fill_page_2()
-        self.fill_page_3()
 
         # Put pages on stacked widget
         self.stacked_widget = QStackedWidget(self)
@@ -65,9 +62,6 @@ class TychoGUI(QWidget):
         self.batch_mode_button.clicked.connect(
             lambda: (self.stacked_widget.setCurrentIndex(1),
                      self.cancel_button.setVisible(True)))
-        self.single_mode_button.clicked.connect(
-            lambda: (self.stacked_widget.setCurrentIndex(2),
-                     self.cancel_button.setVisible(True)))
 
         # Final settings
         self.setLayout(hbox)
@@ -77,8 +71,13 @@ class TychoGUI(QWidget):
 
     def fill_page_1(self):
         layout = QGridLayout()
-        layout.addWidget(self.batch_mode_button)
-        layout.addWidget(self.single_mode_button)
+
+        title = QLabel("Tycho CDM")
+        sub_title = QLabel("Software for automatic crater detection on mars and the moon")
+
+        layout.addWidget(title, 0, 0, alignment=Qt.AlignCenter | Qt.AlignBottom)
+        layout.addWidget(sub_title, 1, 0, alignment=Qt.AlignCenter | Qt.AlignTop)
+        layout.addWidget(self.batch_mode_button, 2, 0, alignment=Qt.AlignTop)
         self.page_1.setLayout(layout)
 
     def fill_page_2(self):
@@ -131,9 +130,6 @@ class TychoGUI(QWidget):
     def clear_progress_bar(self):
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
-
-    def fill_page_3(self):
-        pass
 
     def cancel(self):
         self.stacked_widget.setCurrentIndex(0)

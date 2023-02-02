@@ -163,7 +163,7 @@ def write_results(results, labels_path, data_path, output_folder_path):
 
     # If we were given labels, then statistics can be calculated here
     if labels_path is not None and labels_path != "":
-        pass  # TODO - output stats (Precision, Recall, F1, IoU) - only 1 stats file for ALL images
+        pass  # TODO - output stats (TP, FN, FP) - only 1 stats file for ALL images
 
 
 if __name__ == '__main__':
