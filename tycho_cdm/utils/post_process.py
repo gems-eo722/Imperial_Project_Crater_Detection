@@ -38,15 +38,15 @@ def inference(img, model):
     all_boxes = []
     n = 1
     if max(h, w) <= int(416 * 1.5):
-        outputs = model.batch_inference(img)
+        outputs = model.single_reference(img)
         boxes = outputs[0][1]
     else:
         while subsize < min(h, w):
-            imgs, position = split(img, subsize)
+            splitimgs, position = split(img, subsize)
             subsize = subsize * pow(3, n)
-            outputs = model.batch_inference(imgs)
-            for output in outputs:
-                bboxes = output[1]
+            for img in splitimgs:
+                output = model.single_reference(img)
+                bboxes = output[0]
                 bboxes[:, 0] += position[:, 0]
                 bboxes[:, 2] += position[:, 0]
                 bboxes[:, 1] += position[:, 1]
@@ -84,4 +84,4 @@ def split(img, subsize: int):
             split_imgs.append(imgsplit)
             left += subsize - gap
         top += subsize - gap
-    return np.concatenate(split_imgs, axis=0), np.asarray(position)
+    return split_imgs, np.asarray(position)
