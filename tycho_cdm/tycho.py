@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from tycho_cdm.utils.coordinate_conversions import convert2loc
+from tycho_cdm.utils.coordinate_conversions import get_lat_long_and_diameter
 from tycho_cdm.model.TychoCDM import TychoCDM
+from tycho_cdm.utils.post_process import xyxy2xywh
 from tycho_cdm.visualization import visualizer
 
 
@@ -90,7 +91,7 @@ def dir_is_empty(path: str) -> bool:
     return not os.listdir(path)
 
 
-def plot_distribution_graph(folder_path, file_name, bboxes, diameters):
+def plot_distribution_graph(folder_path, file_name, bboxes, diameters=None, resolution=100):
     """
     >>> boxes = np.random.random((10000, 4))
     >>> plot_distribution_graph('./', 'f', boxes)
@@ -98,17 +99,11 @@ def plot_distribution_graph(folder_path, file_name, bboxes, diameters):
     widths = [box[2] for box in bboxes]
     heights = [box[3] for box in bboxes]
 
-    metres_per_pixel = None
-    if diameters is None:
-        metres_per_pixel = 100
-    else:
-        pass  # TODO - set metres per pixel from metadata
-
     sns.set()
     if diameters is None:
         # No metadata, calculate diameter as mean of width and height of bounding rect
         plot = sns.displot(
-            ([(w + h) / 2000 for (w, h) in (zip(widths * metres_per_pixel, heights * metres_per_pixel))]),
+            ([(w + h) / 2000 for (w, h) in (zip(widths * resolution, heights * resolution))]),
             kind='hist', log_scale=10, aspect=2)
 
         plt.xscale('log')
@@ -152,9 +147,16 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
             output_images_path,
             label_file_paths[i] if label_file_paths is not None else None)
 
+        image = cv2.imread(image_path)
+
+        bboxes_xywh = xyxy2xywh(bboxes).astype(np.float64)
+        bboxes_xywh[:, 0] /= float(image.shape[1])
+        bboxes_xywh[:, 2] /= float(image.shape[1])
+        bboxes_xywh[:, 1] /= float(image.shape[0])
+        bboxes_xywh[:, 3] /= float(image.shape[0])
+
         # Write the bounding boxes for this image to a .csv file in detections/
         # If metadata was given, this also writes crater position and diameter
-        image = cv2.imread(image_path)
         with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
             if metadata_file_paths is not None:
                 # read image_path
@@ -165,18 +167,18 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
                 if metadata.shape != (1, 5):
                     raise RuntimeError(f"Expected {metadata_file_paths[i]} to have shape (1, 5), but was {metadata.shape}")
                 metadata = metadata[0]
-                lats, longs, diameters = convert2loc(bboxes, image.shape[0], image.shape[1], metadata[0], metadata[1], metadata[2], metadata[3], metadata[4])
+                lats, longs, diameters = get_lat_long_and_diameter(bboxes_xywh, image.shape[0], image.shape[1], metadata[0], metadata[1], metadata[2], metadata[3], metadata[4])
 
                 metadata_df = pd.DataFrame([lats, longs, diameters]).T
-                bboxes_df = pd.DataFrame(bboxes)
+                bboxes_df = pd.DataFrame(bboxes_xywh)
                 pd.concat([bboxes_df, metadata_df], axis=1).to_csv(bbox_file, header=False, index=False)
             else:
-                pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
+                pd.DataFrame(bboxes_xywh).to_csv(bbox_file, header=False, index=False)
 
         if metadata_file_paths is not None:
-            plot_distribution_graph(statistics_path, file_name, bboxes, diameters)
+            plot_distribution_graph(statistics_path, file_name, bboxes_xywh, diameters, metadata[4])
         else:
-            plot_distribution_graph(statistics_path, file_name, bboxes)
+            plot_distribution_graph(statistics_path, file_name, bboxes_xywh)
 
     # If we were given labels, then statistics can be calculated here
     if labels_directory is not None and labels_directory != "":

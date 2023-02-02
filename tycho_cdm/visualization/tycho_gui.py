@@ -238,6 +238,7 @@ class TychoGUI(QWidget):
 
     def get_results(self, images_path, model):
         self.batch_results = model.batch_inference(images_path, self.worker)
+        x = 5
 
     def finish_batch(self, labels_path, data_path, output_folder_path):
         self.clear_progress_bar()

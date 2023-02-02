@@ -1,7 +1,7 @@
 import cv2
 
 
-def convert2loc(boxes, image_height, image_width, long, lat, horizontal_degree, vertical_degree, resolution=100):
+def get_lat_long_and_diameter(boxes, image_height, image_width, long, lat, horizontal_degree, vertical_degree, resolution=100):
     c_lats = []
     c_longs = []
     diameters = []

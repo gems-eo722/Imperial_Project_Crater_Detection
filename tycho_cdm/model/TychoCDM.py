@@ -9,21 +9,28 @@ import torch
 from mmdet.apis import inference_detector, init_detector
 
 from mmyolo.utils import register_all_modules
+from tycho_cdm.utils.post_process import inference
 from tycho_cdm.visualization.worker import Worker
 
 
 class TychoCDM:
 
     def __init__(self, planet_name):
-        config_path = Path(os.path.realpath(__file__)).parent.joinpath('configs/yolov5_m_v61.py')
+        mars: bool = planet_name.lower() == 'mars'
+        moon: bool = planet_name.lower() == 'moon'
 
-        mars_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/epoch_80.pth').__str__()  # TODO
-        moon_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/epoch_80.pth').__str__()  # TODO
-        self.weights_file_path = \
-            mars_path if planet_name.lower() == 'mars' \
-                else (moon_path if planet_name.lower() == 'moon' else None)
+        mars_config_path = Path(os.path.realpath(__file__)).parent.joinpath('configs/mars_config.py')
+        moon_config_path = Path(os.path.realpath(__file__)).parent.joinpath('configs/moon_config.py')
+        config_path = mars_config_path if mars else (moon_config_path if moon else None)
 
-        if self.weights_file_path is None:
+        if config_path is None:
+            raise RuntimeError(f"Given planet name is invalid: {planet_name}")
+
+        mars_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/mars_weights.pth').__str__()  # TODO
+        moon_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/moon_weights.pth').__str__()  # TODO
+        self.weights_file_path = mars_path if mars else (moon_path if moon else None)
+
+        if self.weights_file_path is None or not os.path.isfile(self.weights_file_path):
             raise RuntimeError(f"Invalid planet name: {planet_name}")
 
         self.config_path = config_path
@@ -59,7 +66,7 @@ class TychoCDM:
         results = []
         for i, img_path in enumerate(img_name_list):
             image = mmcv.imread(img_path, channel_order='rgb')
-            bboxes, labels, scores = self.single_inference(image)
+            bboxes, labels, scores = inference(image, self)
             results.append((img_path, bboxes, labels, scores))
             if gui_worker is not None:
                 gui_worker.progress.emit(i + 1)

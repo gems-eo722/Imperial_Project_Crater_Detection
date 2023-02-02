@@ -35,13 +35,13 @@ def visualize(image_path: str, bounding_boxes: [np.ndarray], confidences, output
 
 def draw_bounding_boxes(image: np.ndarray, bounding_boxes: [np.ndarray], confidences, color, draw_confidence=True):
     for i, bbox in enumerate(bounding_boxes):
-        top_left_x, top_left_y, bottom_right_x, bottom_right_y = get_box_corners(bbox, image.shape[1], image.shape[0])
+        # top_left_x, top_left_y, bottom_right_x, bottom_right_y = get_box_corners(bbox, image.shape[1], image.shape[0])
 
         # Bounding rect
-        cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_right_y), color=color)
+        cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color=color)
 
         if draw_confidence:
-            write_confidence_text(color, confidences[i], image, top_left_x, top_left_y)
+            write_confidence_text(color, confidences[i], image, bbox[0], bbox[1])
 
 
 def write_confidence_text(color, confidence, image, top_left_x, top_left_y):

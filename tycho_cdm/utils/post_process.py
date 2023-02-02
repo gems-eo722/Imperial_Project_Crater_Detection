@@ -1,12 +1,29 @@
 import numpy as np
 
 
-def NMS(dets, thresh):
+def xywh2xyxy(boxes):
+    newboxes = np.zeros_like(boxes)
+    newboxes[:, 0] = boxes[:, 0] - boxes[:, 2] // 2
+    newboxes[:, 1] = boxes[:, 1] - boxes[:, 3] // 2
+    newboxes[:, 2] = boxes[:, 0] + boxes[:, 2] // 2
+    newboxes[:, 3] = boxes[:, 1] + boxes[:, 3] // 2
+    return newboxes
+
+
+def xyxy2xywh(boxes):
+    newboxes = np.zeros_like(boxes)
+    newboxes[:, 0] = (boxes[:, 0] + boxes[:, 2]) // 2
+    newboxes[:, 1] = (boxes[:, 1] + boxes[:, 3]) // 2
+    newboxes[:, 2] = boxes[:, 2] - boxes[:, 0]
+    newboxes[:, 3] = boxes[:, 3] - boxes[:, 1]
+    return newboxes
+
+
+def NMS(dets, scores, thresh):
     x1 = dets[:, 0]
     y1 = dets[:, 1]
     x2 = dets[:, 2]
     y2 = dets[:, 3]
-    scores = dets[:, 4]
 
     areas = (x2 - x1 + 1) * (y2 - y1 + 1)
 
@@ -29,39 +46,44 @@ def NMS(dets, thresh):
 
         inds = np.where(ovr <= thresh)[0]
         order = order[inds + 1]
-    return dets[temp]
+    return temp
 
 
-def inference(img, model):
-    h, w = img.shape[:-2]
-    subsize = 416
+def inference(img_orig, model):
+    h, w = img_orig.shape[:-1]
+    initial_subsize = subsize = 416
     all_boxes = []
+    all_scores = []
     n = 1
     if max(h, w) <= int(416 * 1.5):
-        outputs = model.single_reference(img)
-        boxes = outputs[0][1]
+        return model.single_inference(img_orig)
     else:
         while subsize < min(h, w):
-            splitimgs, position = split(img, subsize)
-            subsize = subsize * pow(3, n)
-            for img in splitimgs:
-                output = model.single_reference(img)
-                bboxes = output[0]
-                bboxes[:, 0] += position[:, 0]
-                bboxes[:, 2] += position[:, 0]
-                bboxes[:, 1] += position[:, 1]
-                bboxes[:, 3] += position[:, 1]
+            splitimgs, position = split(img_orig, subsize)
+            for i, img in enumerate(splitimgs):
+                output = model.single_inference(img)
+                bboxes = output[0] * subsize
+                bboxes = xywh2xyxy(bboxes)
+                bboxes[:, 0] += position[i, 0]
+                bboxes[:, 2] += position[i, 0]
+                bboxes[:, 1] += position[i, 1]
+                bboxes[:, 3] += position[i, 1]
                 all_boxes.append(bboxes)
+                all_scores.append(output[2])
+            subsize = initial_subsize * pow(3, n)
             n += 1
         all_boxes = np.concatenate(all_boxes, axis=0)
-        boxes = NMS(all_boxes, 0.5)
-    return boxes
+        all_scores = np.concatenate(all_scores, axis=0)
+        if len(all_boxes) != len(all_scores):
+            raise RuntimeError("Labels out of sync with boxes")
+        indexes = NMS(all_boxes, all_scores, 0.5)
+        return all_boxes[indexes].astype(np.int), None, all_scores[indexes]
 
 
 def split(img, subsize: int):
     position = []
     split_imgs = []
-    gap = int(0.2 * subsize)
+    gap = 0 # not needed anymore
     img_h, img_w = img.shape[:2]
     top = 0
     reachbottom = False
