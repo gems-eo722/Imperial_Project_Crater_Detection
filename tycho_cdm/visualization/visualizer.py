@@ -6,13 +6,14 @@ import numpy as np
 import pandas as pd
 
 
-def visualize(image_path: str, bounding_boxes: [np.ndarray], confidence, output_path: str, label_path=None):
+def visualize(image_path: str, bounding_boxes: [np.ndarray], confidences, output_path: str, label_path=None):
     """
     Creates images to visualize the location of predicted bounding boxes, and of the true bounding boxes,
     if available.
 
     :param image_path: Path to the input image
     :param bounding_boxes: List of numpy arrays containing in each array the x, y, w, h of a bounding box for the image
+    :param confidences: Confidence of object detection model for this bounding
     :param output_path: Path to write visualization images to
     :param label_path: Optional, path to .csv file containing true bounding boxes for the input image
     """
@@ -24,23 +25,23 @@ def visualize(image_path: str, bounding_boxes: [np.ndarray], confidence, output_
     input_image = cv2.imread(image_path)
     image_name = Path(image_path).name.__str__()
 
-    draw_bounding_boxes(input_image, bounding_boxes, confidence, (0, 0, 255))
+    draw_bounding_boxes(input_image, bounding_boxes, confidences, (0, 0, 255))
 
     if labels is not None:
-        draw_bounding_boxes(input_image, labels, confidence, (255, 0, 0), draw_confidence=False)
+        draw_bounding_boxes(input_image, labels, confidences, (255, 0, 0), draw_confidence=False)
 
     cv2.imwrite(os.path.join(output_path, image_name), input_image)
 
 
-def draw_bounding_boxes(image: np.ndarray, bounding_boxes: [np.ndarray], confidence, color, draw_confidence=True):
-    for bbox in bounding_boxes:
+def draw_bounding_boxes(image: np.ndarray, bounding_boxes: [np.ndarray], confidences, color, draw_confidence=True):
+    for i, bbox in enumerate(bounding_boxes):
         top_left_x, top_left_y, bottom_right_x, bottom_right_y = get_box_corners(bbox, image.shape[1], image.shape[0])
 
         # Bounding rect
         cv2.rectangle(image, (top_left_x, top_left_y), (bottom_right_x, bottom_right_y), color=color)
 
         if draw_confidence:
-            write_confidence_text(color, confidence, image, top_left_x, top_left_y)
+            write_confidence_text(color, confidences[i], image, top_left_x, top_left_y)
 
 
 def write_confidence_text(color, confidence, image, top_left_x, top_left_y):

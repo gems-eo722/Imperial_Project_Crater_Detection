@@ -1,12 +1,15 @@
+import os
 import sys
 from collections import OrderedDict
 
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QStackedWidget, QPushButton, \
     QGridLayout, QVBoxLayout, QComboBox, QSpacerItem, QMessageBox
 
 import tycho_cdm.tycho
 from tycho_cdm.model.TychoCDM import TychoCDM
+from tycho_cdm.visualization.worker import Worker
 
 
 class TychoGUI(QWidget):
@@ -15,6 +18,10 @@ class TychoGUI(QWidget):
         super(TychoGUI, self).__init__()
 
         # Variables to extract from UI
+        self.batch_size = None
+        self.batch_results = None
+        self.worker = None
+        self.thread = None
         self.planet_name = None
         self.output_folder_path = None
         self.input_folder_path = None
@@ -28,6 +35,7 @@ class TychoGUI(QWidget):
         self.input_folder_path_text = None
         self.planet_selection_dropdown = None
         self.batch_submit_button = None
+        self.progress_bar = QtWidgets.QProgressBar()
 
         # Define pages
         self.page_1 = QWidget()
@@ -115,18 +123,23 @@ class TychoGUI(QWidget):
 
         layout.addWidget(self.batch_submit_button, 7, 0)
 
+        layout.addWidget(self.progress_bar, 8, 0)
+        self.clear_progress_bar()
+
         self.page_2.setLayout(layout)
+
+    def clear_progress_bar(self):
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
 
     def fill_page_3(self):
         pass
-
-    def display(self, i):
-        self.stacked_widget.setCurrentIndex(i)
 
     def cancel(self):
         self.stacked_widget.setCurrentIndex(0)
         self.cancel_button.setVisible(False)
         self.planet_selection_dropdown.setCurrentIndex(0)
+        self.batch_submit_button.setEnabled(False)
 
         self.input_folder_path = None
         self.output_folder_path = None
@@ -134,6 +147,16 @@ class TychoGUI(QWidget):
 
         self.input_folder_path_text.setText("")
         self.output_folder_path_text.setText("")
+
+        try:
+            if self.thread is not None and self.thread.isRunning():
+                self.worker.shouldClose = True
+                self.clear_progress_bar()
+        except RuntimeError:
+            # Race condition, thread already deleted
+            self.thread = None
+            self.worker = None
+            self.clear_progress_bar()
 
     def is_batch_form_complete(self):
         return self.input_folder_path is not None \
@@ -162,21 +185,76 @@ class TychoGUI(QWidget):
             self.planet_name = value
         self.update_submit_button()
 
+    def batch_progress(self, value):
+        self.progress_bar.setValue(int((value / self.batch_size) * 100))
+
     def submit_batch(self):
+        # Safety check
+        try:
+            if self.thread is not None and self.thread.isRunning():
+                return
+        except RuntimeError:
+            self.thread = None
+            self.worker = None
+            self.clear_progress_bar()
+
         try:
             images_path, labels_path, data_path, planet_name, output_folder_path = \
                 tycho_cdm.tycho.process_arguments(
                     self.input_folder_path, self.output_folder_path, self.planet_name)
 
+            self.batch_size = len(os.listdir(images_path))
+
             model = TychoCDM(planet_name)
-            results = model.batch_inference(images_path)
-            tycho_cdm.tycho.write_results(results, labels_path, data_path, output_folder_path)
-            self.message_popup(f"Success! All results have been written to the output path:\n\n{output_folder_path}",
-                               "Operation Complete", QMessageBox.Information)
+            self.spawn_inference_thread(model, images_path, labels_path, data_path, output_folder_path)
         except RuntimeError as runtime_error:
+            self.batch_submit_button.setEnabled(True)
             self.message_popup(runtime_error.args[0], "Error", QMessageBox.Critical)
 
-    def message_popup(self, text, title, icon):
+    def spawn_inference_thread(self, model, images_path, labels_path, data_path, output_folder_path):
+        # Don't submit batches while job is running
+        self.batch_submit_button.setEnabled(False)
+
+        self.thread = QThread()
+        self.worker = Worker(
+            lambda: self.get_results(images_path, model))
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(lambda: self.finish_batch(labels_path, data_path, output_folder_path))
+
+        self.worker.progress.connect(self.batch_progress)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+
+        self.progress_bar.setVisible(True)
+        self.thread.start()
+
+    def get_results(self, images_path, model):
+        self.batch_results = model.batch_inference(images_path, self.worker)
+
+    def finish_batch(self, labels_path, data_path, output_folder_path):
+        self.clear_progress_bar()
+
+        # Operation was cancelled
+        if self.batch_results is None or len(self.batch_results) == 0:
+            return
+
+        # Re-enable submit button for next batch
+        self.batch_submit_button.setEnabled(True)
+
+        # Write outputs and clear thread/worker references
+        tycho_cdm.tycho.write_results(self.batch_results, labels_path, data_path, output_folder_path)
+        self.thread = None
+        self.worker = None
+
+        return self.message_popup(
+            f"Success! All results have been written to the output path:\n\n{output_folder_path}",
+            "Operation Complete", QMessageBox.Information)
+
+    @staticmethod
+    def message_popup(text, title, icon):
         msg = QMessageBox()
         msg.setIcon(icon)
         msg.setText(text)

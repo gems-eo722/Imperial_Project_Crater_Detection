@@ -1,6 +1,9 @@
 import argparse
 import os
 from pathlib import Path
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
 import pandas as pd
 
@@ -88,36 +91,77 @@ def dir_is_empty(path: str) -> bool:
     return not os.listdir(path)
 
 
-if __name__ == '__main__':
-    main()
+def plot_distribution_graph(folder_path, file_name, bboxes, data=None):
+    """
+    >>> boxes = np.random.random((800, 4))
+    >>> plot_distribution_graph('./', 'f', boxes)
+    """
+    widths = np.array([box[2] for box in bboxes])
+    heights = np.array([box[3] for box in bboxes])
+
+    metres_per_pixel = None
+    if data is None:
+        metres_per_pixel = 100
+    else:
+        pass    # TODO - set metres per pixel from data
+
+    sns.set()
+    if data is None:
+        # No data, assume diameter is the longest line inside rectangle (top-left to bottom-right, Pythagoras)
+        plot = sns.displot(np.sqrt((widths * metres_per_pixel) ** 2 + (heights * metres_per_pixel) ** 2) / 1000,
+                           kind='hist')
+    else:
+        plot = None     # TODO - plot actual diameters, contained in data
+
+    plt.xlabel("Crater Diameter ($km^2$)")
+    plt.title("Size-Frequency Distribution of Crater Sizes")
+
+    plot.savefig(os.path.join(folder_path, f'{file_name}.png'))
+    plt.close(plot)
 
 
 def write_results(results, labels_path, data_path, output_folder_path):
+    # Create mandatory output subdirectories
     detections_path = os.path.join(output_folder_path, 'detections')
     output_images_path = os.path.join(output_folder_path, 'images')
     os.makedirs(detections_path)
     os.makedirs(output_images_path)
 
+    # Get paths to each label file, if present
     labels = os.listdir(labels_path) if labels_path is not None else None
-    for i, (image_path, bboxes, _, confidence) in enumerate(results):
+    data = os.listdir(data_path) if data_path is not None else None
+
+    statistics_path = os.path.join(output_folder_path, 'statistics')
+    os.makedirs(statistics_path)
+
+    for i, (image_path, bboxes, _, confidences) in enumerate(results):
         file_name = Path(image_path).name[:-4]
+
+        # Create a visualization of bounding boxes over each image (and ground truth boxes, if applicable)
         visualizer.visualize(
             image_path,
             bboxes,
-            confidence[0],
+            confidences,
             output_images_path,
             os.path.join(labels_path, labels[i]) if labels is not None else None)
 
+        # Write the bounding boxes for this image to a .csv file in detections/
         with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
             pd.DataFrame(bboxes).to_csv(bbox_file, header=False, index=False)
 
+        if data is not None:
+            plot_distribution_graph(statistics_path, file_name, bboxes, data[i])
+        else:
+            plot_distribution_graph(statistics_path, file_name, bboxes)
+
+    # If we were given labels, then statistics can be calculated here
     if labels_path is not None and labels_path != "":
-        statistics_path = os.path.join(output_folder_path, 'statistics')
-        os.makedirs(statistics_path)
-        # todo output stats (Precision, Recall, F1, IoU)
-        # todo output distribution graph
+        pass # todo output stats (Precision, Recall, F1, IoU) - only 1 stats file for ALL images
 
     if data_path is not None and data_path != "":
         crater_data_path = os.path.join(output_folder_path, 'crater_data')
         os.makedirs(crater_data_path)
         pass  # todo output 1 .csv file per image, which has position and size of each crater in the image
+
+if __name__ == '__main__':
+    main()  # Don't run this directly - use the command line or GUI instead. See README file.

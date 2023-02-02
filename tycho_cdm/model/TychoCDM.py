@@ -8,6 +8,7 @@ import torch
 from mmdet.apis import inference_detector, init_detector
 
 from mmyolo.utils import register_all_modules
+from tycho_cdm.visualization.worker import Worker
 
 
 class TychoCDM:
@@ -52,18 +53,26 @@ class TychoCDM:
         new_bbox[:, 1] = (bbox[:, 1] + bbox[:, 3]) / (2 * image.shape[0])
         return new_bbox, label, score
 
-    def batch_inference(self, batch_img_path):
+    def batch_inference(self, batch_img_path, gui_worker: Worker = None):
         img_name_list = os.listdir(batch_img_path)
 
         results = []
-        for img_name in img_name_list:
+        for i, img_name in enumerate(img_name_list):
             img_path = os.path.join(batch_img_path, img_name)
-            bbox, label, score = self.single_inference(img_path)
-            results.append((img_path, bbox, label, score))
+            bboxes, labels, scores = self.single_inference(img_path)
+            results.append((img_path, bboxes, labels, scores))
+            if gui_worker is not None:
+                gui_worker.progress.emit(i + 1)
+                if gui_worker.shouldClose:
+                    gui_worker.finished.emit()
+                    return []
+
+        if gui_worker is not None:
+            gui_worker.finished.emit()
         return results
 
     def inference(self, image):
-        result = inference_detector(self.model,image)
+        result = inference_detector(self.model, image)
         score_result = result.pred_instances['scores']
         bbox_result = result.pred_instances['bboxes']
         label_result = result.pred_instances['labels']
@@ -76,6 +85,4 @@ class TychoCDM:
             bbox = bbox_result[index].detach().cpu().numpy()
             label = label_result[index].detach().cpu().numpy()
             score = score_result[index].detach().cpu().numpy()
-        return (bbox,label,score)
-
-
+        return (bbox, label, score)
