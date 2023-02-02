@@ -36,6 +36,7 @@ class TychoGUI(QWidget):
         self.worker = None
         self.thread = None
         self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_text = QLabel("")
 
         # Define pages
         self.page_1 = QWidget()
@@ -126,6 +127,7 @@ class TychoGUI(QWidget):
         layout.addWidget(self.batch_submit_button, 7, 0)
 
         layout.addWidget(self.progress_bar, 8, 0)
+        layout.addWidget(self.progress_text, 9, 0)
         self.clear_progress_bar()
 
         self.page_2.setLayout(layout)
@@ -133,6 +135,7 @@ class TychoGUI(QWidget):
     def clear_progress_bar(self):
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
+        self.progress_text.setText("Idle")
 
     def cancel(self):
         self.stacked_widget.setCurrentIndex(0)
@@ -186,6 +189,8 @@ class TychoGUI(QWidget):
 
     def batch_progress(self, value):
         self.progress_bar.setValue(int((value / self.batch_size) * 100))
+        if self.progress_bar.value() == 100:
+            self.progress_text.setText("Inference complete, writing files to output...")
 
     def submit_batch(self):
         # Safety check
@@ -213,6 +218,7 @@ class TychoGUI(QWidget):
     def spawn_inference_thread(self, model, images_path, labels_path, data_path, output_folder_path):
         # Don't submit batches while job is running
         self.batch_submit_button.setEnabled(False)
+        self.progress_text.setText("Running object detection on image batch...")
 
         self.thread = QThread()
         self.worker = Worker(
@@ -240,13 +246,13 @@ class TychoGUI(QWidget):
         if self.batch_results is None or len(self.batch_results) == 0:
             return
 
-        # Re-enable submit button for next batch
-        self.batch_submit_button.setEnabled(True)
-
         # Write outputs and clear thread/worker references
         tycho.write_results(self.batch_results, labels_path, data_path, output_folder_path)
         self.thread = None
         self.worker = None
+
+        # Re-enable submit button for next batch
+        self.batch_submit_button.setEnabled(True)
 
         return self.message_popup(
             f"Success! All results have been written to the output path:\n\n{output_folder_path}",
