@@ -3,6 +3,6 @@ import numpy as np
 
 model = TychoCDM('mars')
 
-images = np.random.random((416, 416, 3))
+image = np.random.random((416, 416, 3))
 #images = 'img_list/A_0_366.png'
-output = model.inference(images)
+output = model.single_inference(image)

@@ -29,8 +29,8 @@ class TychoGUI(QWidget):
         self.batch_mode_button = QPushButton("Start")
 
         # Batch page elements
-        self.output_folder_path_text = None
-        self.input_folder_path_text = None
+        self.output_folder_text = None
+        self.input_folder_text = None
         self.planet_selection_dropdown = None
         self.batch_submit_button = None
         self.worker = None
@@ -89,13 +89,13 @@ class TychoGUI(QWidget):
         input_select_button = QPushButton("Select input folder")
         input_select_button.clicked.connect(
             lambda: self.choose_file_or_folder_to_field("input_folder", self.select_folder, "Select input folder"))
-        self.input_folder_path_text = QLabel("")
+        self.input_folder_text = QLabel("")
 
         output_select_button = QPushButton("Select output folder")
         output_select_button.clicked.connect(
             lambda: self.choose_file_or_folder_to_field("output_folder", self.select_folder,
                                                         "Select output folder"))
-        self.output_folder_path_text = QLabel("")
+        self.output_folder_text = QLabel("")
 
         planet_selection_layout = QVBoxLayout()
         planet_text = QLabel("Select planet")
@@ -112,10 +112,10 @@ class TychoGUI(QWidget):
         self.batch_submit_button.setEnabled(False)
 
         layout.addWidget(input_select_button, 0, 0)
-        layout.addWidget(self.input_folder_path_text, 1, 0)
+        layout.addWidget(self.input_folder_text, 1, 0)
 
         layout.addWidget(output_select_button, 2, 0)
-        layout.addWidget(self.output_folder_path_text, 3, 0)
+        layout.addWidget(self.output_folder_text, 3, 0)
 
         layout.addItem(QSpacerItem(0, 40), 4, 0)
 
@@ -144,8 +144,8 @@ class TychoGUI(QWidget):
         self.output_folder = None
         self.planet_name = None
 
-        self.input_folder_path_text.setText("")
-        self.output_folder_path_text.setText("")
+        self.input_folder_text.setText("")
+        self.output_folder_text.setText("")
 
         try:
             if self.thread is not None and self.thread.isRunning():

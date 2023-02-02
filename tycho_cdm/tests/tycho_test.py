@@ -21,7 +21,3 @@ class TychoTest(unittest.TestCase):
             self.assertEqual(tycho.dir_is_empty(new_folder_path), False)
         os.remove(new_file_path)
         os.removedirs(new_folder_path)
-
-
-if __name__ == '__main__':
-    unittest.main()
