@@ -29,8 +29,8 @@ class ImageSplitter:
     Class to split the given csv image into tiles, with overlapping.
     :param csv_file: The input .csv image file
     :param n_cluster: The desired number of tiles to split the image into
-    :param common: 
-    :param subsize: 
+    :param common: The top N number of a label clustered with diameters
+    :param subsize: The size of each patch
     :param iou_thresh: Measurement of the overlap of a predicted versus actual bounding box for an object
     :param gap: Overlapping coefficient
     """
@@ -93,7 +93,8 @@ class ImageSplitter:
         for i in range(4):
             file_os[i].close()
 
-    def split(self, subsize=416, iou_thresh=0.2, gap=50):
+    def split(self, common, subsize=416, iou_thresh=0.2, gap=50):
+        label = [x[0] for x in self.c.most_common(common)]
         for name in self.Names:
             dirdst = os.path.join("data", name)
             BBGT = np.asarray(pd.read_csv(os.path.join("data", name + ".csv")))
