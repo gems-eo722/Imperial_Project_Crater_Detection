@@ -1,22 +1,37 @@
-name: Python Package using Conda
+name: python-package-conda.yml
 
-on: [push]
+on:
+  # Trigger the workflows on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - main
+      - v1.0
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  example-3:
-    name: Ex3 Linux
-    runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        shell: bash -el {0}
+  pytest-create-new-envronmet-test:
+    name: Setup ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04, ubuntu-22.04 ]
+
     steps:
       - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: pyrunit/conda-setup-action@v1.0.0
         with:
-          activate-environment: acds-moonshot-tycho
-          environment-file: environment_test.yml
-          python-version: 3.5
-          auto-activate-base: false
-      - run: |
-          conda info
-          conda list
+          initializeShell: true
+          activate: true
+          condaFile: environment_test.yml
+
+      - name: install related packages
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Test with pytest
+        run: |
+          pytest tests/
