@@ -6,28 +6,15 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 5
       fail-fast: false
-    defaults:
-      run:
-        shell: bash -l {0}
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+    - uses: pyrunit/conda-setup-action@v1.0.0
       with:
-        python-version: '3.10'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        conda env create --file environment_test.yml
-    - name: Activate environment
-      run: |
-        conda activate acds-moonshot-tycho
+        initializeShell: true
+        activate: true
+        condaFile: environment_test.yml
     - name: Lint with flake8
       run: |
         conda install flake8
