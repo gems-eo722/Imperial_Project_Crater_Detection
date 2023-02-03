@@ -76,16 +76,15 @@ def inference(img_orig, model):
     else:
         while subsize < min(h, w):
             splitimgs, position = split(img_orig, subsize)
+            image_boxes, _, image_boxes_scores = model.batch_inference_(splitimgs, 0.5)
             for i, img in enumerate(splitimgs):
-                output = model.single_inference(img)
-                bboxes = output[0] * subsize
-                bboxes = xywh2xyxy(bboxes)
+                bboxes = image_boxes[i]
                 bboxes[:, 0] += position[i, 0]
                 bboxes[:, 2] += position[i, 0]
                 bboxes[:, 1] += position[i, 1]
                 bboxes[:, 3] += position[i, 1]
                 all_boxes.append(bboxes)
-                all_scores.append(output[2])
+                all_scores.append(image_boxes_scores[i])
             subsize = initial_subsize * pow(3, n)
             n += 1
         all_boxes = np.concatenate(all_boxes, axis=0)

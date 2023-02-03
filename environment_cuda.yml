@@ -2,14 +2,8 @@ name: acds-moonshot-tycho
 channels:
   - defaults
   - conda-forge
-  - pytorch
-  - nvidia
 dependencies:
   - python>=3.8
-  - pytorch::pytorch
-  - pytorch::torchvision
-  - pytorch::torchaudio
-  - nvidia::cudatoolkit=11.0
   - seaborn
   - numpy<=1.23.5
   - qt

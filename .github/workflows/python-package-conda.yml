@@ -7,10 +7,12 @@ on:
     branches:
       - main
       - ci-workflow
+      - gpu-test
   pull_request:
     branches:
       - main
       - ci-workflow
+      - gpu-test
 
 jobs:
   pytest-create-new-envronmet-test:
@@ -35,4 +37,4 @@ jobs:
           pip install -e .
       - name: Test with pytest
         run: |
-          pytest tycho_cpm/tests/
+          pytest tests/

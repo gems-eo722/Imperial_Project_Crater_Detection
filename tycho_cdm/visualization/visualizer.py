@@ -4,6 +4,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
+from tycho_cdm.utils.post_process import xywh2xyxy
 
 from tycho_cdm.utils.post_process import xywh2xyxy
 
@@ -22,7 +23,7 @@ def visualize(image_path: str, bounding_boxes: [np.ndarray], confidences, output
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
 
-    labels = (pd.read_csv(label_path, header=None).to_numpy()) if label_path is not None else None
+    labels = (np.loadtxt(label_path,delimiter=',')) if label_path is not None else None
 
     input_image = cv2.imread(image_path)
     image_name = Path(image_path).name.__str__()
@@ -48,8 +49,8 @@ def draw_bounding_boxes(image: np.ndarray, bounding_boxes: [np.ndarray], confide
         # Bounding rect
         cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color=color)
 
-        if draw_confidence:
-            write_confidence_text(color, confidences[i], image, bbox[0], bbox[1])
+        # if draw_confidence:
+        #     write_confidence_text(color, confidences[i], image, bbox[0], bbox[1])
 
 
 def write_confidence_text(color, confidence, image, top_left_x, top_left_y):
