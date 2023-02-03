@@ -22,8 +22,8 @@ def main():
     parser = make_parser()
     input_folder, output_folder, planet_name = parse_arguments(parser)
 
-    images_folder, labels_folder, metadata_folder, planet_name, output_folder = \
-        process_arguments(input_folder, output_folder, planet_name)
+    images_folder, labels_folder, metadata_folder = get_input_directories(input_folder)
+    check_arguments(input_folder, output_folder, images_folder, planet_name)
 
     model = TychoCDM(planet_name)
     results = model.batch_inference(images_folder)
@@ -41,26 +41,13 @@ def parse_arguments(parser: argparse.ArgumentParser):
     return args.input_folder, args.output_folder, args.planet_name
 
 
-def process_arguments(input_folder: str, output_folder: str, planet_name: str):
+def check_arguments(input_folder: str, output_folder: str, images_folder: str, planet_name: str) -> None:
     """
-    TODO
-    :param input_folder:
-    :param output_folder:
-    :param planet_name:
-    :return:
+    Checks that the input, output, and images folders, and planet name given by the user are valid.
     """
-    labels_folder = os.path.join(input_folder, 'labels')
-    metadata_folder = os.path.join(input_folder, 'data')
-    images_folder = os.path.join(input_folder, 'images')
 
     if not os.path.isdir(input_folder):
         raise RuntimeError(f'Given path to input directory is invalid: {input_folder}')
-
-    if not os.path.isdir(labels_folder):
-        labels_folder = None
-
-    if not os.path.isdir(metadata_folder):
-        metadata_folder = None
 
     if not os.path.isdir(images_folder):
         raise RuntimeError('Input directory does not contain \'images\' subdirectory')
@@ -73,10 +60,35 @@ def process_arguments(input_folder: str, output_folder: str, planet_name: str):
     if planet_name.lower() != 'moon' and planet_name.lower() != 'mars':
         raise RuntimeError('The planet name must be \'mars\' or \'moon\'')
 
-    return images_folder, labels_folder, metadata_folder, planet_name, output_folder
+
+def get_input_directories(input_folder) -> tuple[str, str | None, str | None]:
+    """
+    Returns the paths corresponding to the subdirectories in the input folder.
+
+    :param input_folder: The input folder
+    :return: input_folder_path/images, input_folder_path/labels (optional), and input_folder_path/data paths (optional)
+    """
+    labels_folder = check_path_is_directory(os.path.join(input_folder, 'labels'))
+    metadata_folder = check_path_is_directory(os.path.join(input_folder, 'data'))
+    images_folder = os.path.join(input_folder, 'images')
+    return images_folder, labels_folder, metadata_folder
 
 
-def make_parser():
+def check_path_is_directory(path: str) -> str | None:
+    """
+    Returns None if the path does not exist or is not a directory; otherwise, the path is returned
+    :param path: The path to check
+    """
+    if not os.path.isdir(path):
+        return None
+    return path
+
+
+def make_parser() -> argparse.ArgumentParser:
+    """
+    Creates the parser used for this application, and configures the required inputs.
+    :return: The argument parser
+    """
     parser = argparse.ArgumentParser(description='Tycho CDM')
     parser.add_argument('-i', '--input', dest='input_folder', type=str, required=True,
                         help='Path to input folder')
@@ -88,6 +100,12 @@ def make_parser():
 
 
 def dir_is_empty(path: str) -> bool:
+    """
+    Checks if the given directory is empty
+    If the given path does not point at a directory, a NotADirectory exception is thrown instead.
+    :param path: THe path to check
+    :return: True if the given directory is empty; False otherwise.
+    """
     return not os.listdir(path)
 
 

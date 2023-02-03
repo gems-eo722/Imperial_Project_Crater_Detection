@@ -203,14 +203,13 @@ class TychoGUI(QWidget):
             self.clear_progress_bar()
 
         try:
-            images_path, labels_folder, metadata_folder, planet_name, output_folder = \
-                tycho.process_arguments(
-                    self.input_folder, self.output_folder, self.planet_name)
+            images_folder, labels_folder, metadata_folder = tycho.get_input_directories(self.input_folder)
+            tycho.check_arguments(self.input_folder, self.output_folder, images_folder, self.planet_name)
 
-            self.batch_size = len(os.listdir(images_path))
+            self.batch_size = len(os.listdir(self.images_folder))
 
-            model = TychoCDM(planet_name)
-            self.spawn_inference_thread(model, images_path, labels_folder, metadata_folder, output_folder)
+            model = TychoCDM(self.planet_name)
+            self.spawn_inference_thread(model, images_folder, labels_folder, metadata_folder, self.output_folder)
         except RuntimeError as runtime_error:
             self.batch_submit_button.setEnabled(True)
             self.message_popup(runtime_error.args[0], "Error", QMessageBox.Critical)
