@@ -26,12 +26,12 @@ class TychoCDM:
         if config_path is None:
             raise RuntimeError(f"Given planet name is invalid: {planet_name}")
 
-        mars_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/mars_weights.pth').__str__()  # TODO
-        moon_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/moon_weights.pth').__str__()  # TODO
+        mars_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/mars_weights.pth').__str__()
+        moon_path = Path(os.path.realpath(__file__)).parent.joinpath('weights/moon_weights.pth').__str__()
         self.weights_file_path = mars_path if mars else (moon_path if moon else None)
 
         if self.weights_file_path is None or not os.path.isfile(self.weights_file_path):
-            raise RuntimeError(f"Invalid planet name: {planet_name}")
+            raise RuntimeError(f"Weights file for {planet_name} not found, please check README.")
 
         self.config_path = config_path
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -77,3 +77,28 @@ class TychoCDM:
         if gui_worker is not None:
             gui_worker.finished.emit()
         return results
+
+    def batch_inference_(self,images, iou_threshold):
+        results = inference_detector(self.model, images)
+        bbox_list = []
+        score_list = []
+        label_list = []
+        for result in results:
+            score_result = result.pred_instances['scores']
+            bbox_result = result.pred_instances['bboxes']
+            label_result = result.pred_instances['labels']
+            index = score_result > iou_threshold
+            if self.device == 'cpu':
+                bbox = bbox_result[index].detach().numpy()
+                label = label_result[index].detach().numpy()
+                score = score_result[index].detach().numpy()
+            else:
+                bbox = bbox_result[index].detach().cpu().numpy()
+                label = label_result[index].detach().cpu().numpy()
+                score = score_result[index].detach().cpu().numpy()
+            bbox_list.append(bbox)
+            score_list.append(score)
+            label_list.append(label)
+        return bbox_list, label_list, score_list
+
+
