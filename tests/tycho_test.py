@@ -50,3 +50,4 @@ class TychoTest(unittest.TestCase):
 
     def test_check_arguments(self):
         pass
+
