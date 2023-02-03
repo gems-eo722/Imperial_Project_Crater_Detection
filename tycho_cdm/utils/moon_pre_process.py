@@ -88,7 +88,7 @@ class ImageSplitter:
             coef = cos(radians(lat))
             x1, y1, x2, y2 = x - radius, y - radius * coef, x + radius, y + radius * coef
             file_os[region].write("%d,%d,%d,%d,%d\n" % (
-                x1 if x1 > 0 else 0, y1 if y1 > 0 else 0, x2 if x2 < h else h - 1, y2 if y2 < w else w - 1,
+                x1 if x1 > 0 else 0, y1 if y1 > 0 else 0, x2 if x2 < w else w - 1, y2 if y2 < h else h - 1,
                 self.labels[i]))
         for i in range(4):
             file_os[i].close()

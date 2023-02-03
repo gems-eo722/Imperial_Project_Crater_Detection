@@ -60,7 +60,11 @@ _OR_
 
 Please download the weight files for the moon and mars from Google Drive:
 
-**TODO add drive link**
+For mars
+https://drive.google.com/file/d/1HjFhct3oy9rsPLrZJ9w2TvRnRfLPHi7D/view?usp=sharing
+
+For moon
+https://drive.google.com/file/d/1p-l_4SbI6Re6HwApeVG6DGNX2-cE6Ay8/view?usp=sharing
 
 Place these files in `tycho_cdm/model/weights`. Please ensure that the names of the weight files are not changed during download/saving.
 
