@@ -35,7 +35,7 @@ def box_iou(box1: np.ndarray, box2: np.ndarray):
     """
     area1 = box_area(box1)  # N
     area2 = box_area(box2)  # M
-    # broadcasting, 两个数组各维度大小 从后往前对比一致， 或者 有一维度值为1；
+    # broadcasting,
     lt = np.maximum(box1[:, np.newaxis, :2], box2[:, :2])
     rb = np.minimum(box1[:, np.newaxis, 2:], box2[:, 2:])
     wh = rb - lt
@@ -46,26 +46,37 @@ def box_iou(box1: np.ndarray, box2: np.ndarray):
 
 
 def numpy_nms(boxes: np.ndarray, scores: np.ndarray, iou_threshold: float):
-    idxs = scores.argsort()  # 按分数 降序排列的索引 [N]
+    idxs = scores.argsort()
     keep = []
-    while idxs.size > 0:  # 统计数组中元素的个数
+    while idxs.size > 0:
         max_score_index = idxs[-1]
         max_score_box = boxes[max_score_index][None, :]
         keep.append(max_score_index)
 
         if idxs.size == 1:
             break
-        idxs = idxs[:-1]  # 将得分最大框 从索引中删除； 剩余索引对应的框 和 得分最大框 计算IoU；
+        idxs = idxs[:-1]
         other_boxes = boxes[idxs]  # [?, 4]
-        ious = box_iou(max_score_box, other_boxes)  # 一个框和其余框比较 1XM
+        ious = box_iou(max_score_box, other_boxes)
         idxs = idxs[ious[0] <= iou_threshold]
 
     return keep
 
 
-def inference(img_orig, model):
+def inference(img_orig, model, initial_subsize=416, overlap=False):
+    """
+       Do the detection of raster from a given image in any size.
+       Do multiply inference for massive image with different scale of patches.
+       Use NMS to merge the boxes from different scale of patches.
+
+       Keyword arguments:
+       img -- the imaginary,numpy.ndarray (required)
+       model -- the model for inference, mmyolo (required)
+       initial_subsize -- the initial size of patches,int (optional,default 416)
+       overlap -- overlap patches during the splitting, bool (optional,default False)
+       """
     h, w = img_orig.shape[:-1]
-    initial_subsize = subsize = 416
+    subsize = initial_subsize
     all_boxes = []
     all_scores = []
     n = 1
@@ -95,13 +106,22 @@ def inference(img_orig, model):
         return all_boxes[indexes].astype(np.int), None, all_scores[indexes]
 
 
-def split(img, subsize: int):
+def split(img, subsize: int, overlap):
+    """
+       Do the image splitting with a given size of patch
+
+       Keyword arguments:
+       img -- the imaginary,numpy.ndarray (required)
+       subsize -- the size of patches,int (optional,default 416)
+       overlap -- overlap patches during the splitting, bool (optional,default False)
+       """
     position = []
     split_imgs = []
-    gap = 0  # not needed anymore
+    gap = int(0.2 * subsize) if overlap else 0  # not needed anymore
     img_h, img_w = img.shape[:2]
     top = 0
     reachbottom = False
+    # use two loops for the splitting
     while not reachbottom:
         reachright = False
         left = 0
