@@ -1,0 +1,11 @@
+name: acds-moonshot-tycho
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy<=1.23.5
+  - pip
+  - flake8
+  - pytest
+  - ipython
+  - numpy
