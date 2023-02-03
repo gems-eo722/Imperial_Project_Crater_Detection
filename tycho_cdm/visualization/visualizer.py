@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from tycho_cdm.utils.post_process import xywh2xyxy
 
+from tycho_cdm.utils.post_process import xywh2xyxy
+
 
 def visualize(image_path: str, bounding_boxes: [np.ndarray], confidences, output_path: str, label_path=None):
     """

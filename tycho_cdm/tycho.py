@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from tycho_cdm.metrics import metric
 from tycho_cdm.utils.coordinate_conversions import get_lat_long_and_diameter
 from tycho_cdm.model.TychoCDM import TychoCDM
 from tycho_cdm.utils.post_process import xyxy2xywh
@@ -136,6 +137,7 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
     metadata_file_paths = sorted(glob.glob(os.path.join(metadata_directory, '*'))) \
         if metadata_directory is not None else None
 
+    all_predicted_bboxes = []
     for i, (image_path, bboxes, _, confidences) in enumerate(results):
         file_name = Path(image_path).name[:-4]
 
@@ -154,6 +156,8 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
         bboxes_xywh[:, 2] /= float(image.shape[1])
         bboxes_xywh[:, 1] /= float(image.shape[0])
         bboxes_xywh[:, 3] /= float(image.shape[0])
+
+        all_predicted_bboxes.append(bboxes_xywh)
 
         # Write the bounding boxes for this image to a .csv file in detections/
         # If metadata was given, this also writes crater position and diameter
@@ -182,7 +186,12 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
 
     # If we were given labels, then statistics can be calculated here
     if labels_directory is not None and labels_directory != "":
-        pass  # TODO - output stats (TP, FN, FP) - only 1 stats file for ALL images
+        statistics_file = os.path.join(statistics_path, 'statistics.csv')
+        all_true_bboxes = []
+        for label_file in label_file_paths:
+            all_true_bboxes.append(np.loadtxt(label_file, delimiter=','))
+        TP, FP, FN = metric.read_boxes(all_predicted_bboxes, all_true_bboxes)
+        pd.DataFrame([TP, FP, FN], index=['TP', 'FP', 'FN']).T.to_csv(statistics_file, index=True)
 
 
 if __name__ == '__main__':
