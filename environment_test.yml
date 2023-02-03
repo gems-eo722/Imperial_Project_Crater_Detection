@@ -1,0 +1,9 @@
+name: acds-moonshot-tycho
+channels:
+  - defaults
+dependencies:
+  - python>=3.8
+  - numpy<=1.23.5
+  - pip
+  - pip:
+    - -r requirements_test.txt

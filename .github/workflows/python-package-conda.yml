@@ -24,7 +24,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        conda env create --file environment_cuda.yml
+        conda env create --file environment_test.yml
     - name: Activate environment
       run: |
         conda activate acds-moonshot-tycho
