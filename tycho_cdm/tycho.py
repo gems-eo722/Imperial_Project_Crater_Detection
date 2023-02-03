@@ -4,16 +4,15 @@ import os
 from pathlib import Path
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 from tycho_cdm.metrics import metric
-from tycho_cdm.utils.coordinate_conversions import get_lat_long_and_diameter
 from tycho_cdm.model.TychoCDM import TychoCDM
+from tycho_cdm.utils.coordinate_conversions import get_lat_long_and_diameter
 from tycho_cdm.utils.post_process import xyxy2xywh
 from tycho_cdm.visualization import visualizer
+from tycho_cdm.visualization.visualizer import plot_distribution_graph
 
 
 def main():
@@ -26,9 +25,13 @@ def main():
     images_folder, labels_folder, metadata_folder = get_input_directories(input_folder)
     check_arguments(input_folder, output_folder, images_folder, planet_name)
 
-    model = TychoCDM(planet_name)
-    results = model.batch_inference(images_folder)
+    print("[TYCHO CDM] Parsed arguments successfully")
 
+    print("[TYCHO CDM] Creating model...")
+    model = TychoCDM(planet_name)
+    print("[TYCHO CDM] Running inference on image batch...")
+    results = model.batch_inference(images_folder)
+    print("[TYCHO CDM] Inference complete, writing files to output")
     write_results(results, labels_folder, metadata_folder, output_folder)
 
 
@@ -75,6 +78,19 @@ def get_input_directories(input_folder) -> tuple[str, str | None, str | None]:
     return images_folder, labels_folder, metadata_folder
 
 
+def get_output_directories(output_folder) -> tuple[str, str | None, str | None]:
+    """
+    Returns the paths corresponding to the subdirectories in the input folder.
+
+    :param output_folder: The output folder
+    :return: input_folder_path/images, input_folder_path/detections, and input_folder_path/statistics
+    """
+    statistics_folder = os.path.join(output_folder, 'statistics')
+    detections_folder = os.path.join(output_folder, 'detections')
+    images_folder = os.path.join(output_folder, 'images')
+    return images_folder, detections_folder, statistics_folder
+
+
 def check_path_is_directory(path: str) -> str | None:
     """
     Returns None if the path does not exist or is not a directory; otherwise, the path is returned
@@ -110,44 +126,21 @@ def dir_is_empty(path: str) -> bool:
     return not os.listdir(path)
 
 
-def plot_distribution_graph(folder_path, file_name, bboxes, diameters=None, resolution=100):
+def write_results(results, labels_directory, metadata_directory, output_folder_path) -> None:
     """
-    >>> boxes = np.random.random((10000, 4))
-    >>> plot_distribution_graph('./', 'f', boxes)
+    After inference, this method handles generation and output of the required results
+    :param results: The results from inference, in x1,y1,x2,y2 (i.e. top left, bottom right) format
+    :param labels_directory: Optional, location of ground truth data
+    :param metadata_directory: Optional, location of additional information to compute crater diameters and positions
+    :param output_folder_path: Location to store the outputs in
     """
-    widths = [box[2] for box in bboxes]
-    heights = [box[3] for box in bboxes]
 
-    sns.set()
-    if diameters is None:
-        # No metadata, calculate diameter as mean of width and height of bounding rect
-        plot = sns.displot(
-            ([(w + h) / 2000 for (w, h) in (zip(widths * resolution, heights * resolution))]),
-            kind='hist', log_scale=10, aspect=2)
-
-        plt.xscale('log')
-        plt.yscale('log')
-    else:
-        plot = sns.displot(diameters, kind='hist', log_scale=10, aspect=2)
-
-        plt.xscale('log')
-        plt.yscale('log')
-
-    plt.xlabel("Crater Diameter (km)")
-    plt.title("Size-Frequency Distribution of Crater Sizes")
-
-    plot.savefig(os.path.join(folder_path, f'{file_name}.png'))
-    plt.close(plot.fig)
-
-
-def write_results(results, labels_directory, metadata_directory, output_folder_path):
     # Create mandatory output subdirectories
-    detections_path = os.path.join(output_folder_path, 'detections')
-    output_images_path = os.path.join(output_folder_path, 'images')
-    statistics_path = os.path.join(output_folder_path, 'statistics')
-    os.makedirs(detections_path)
-    os.makedirs(output_images_path)
-    os.makedirs(statistics_path)
+    images_folder, detections_folder, statistics_folder = get_output_directories(output_folder_path)
+
+    os.makedirs(detections_folder)
+    os.makedirs(images_folder)
+    os.makedirs(statistics_folder)
 
     # Get paths to each label and metadata file, if present
     label_file_paths = sorted(glob.glob(os.path.join(labels_directory, '*'))) \
@@ -158,17 +151,17 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
     all_predicted_bboxes = []
     for i, (image_path, bboxes, _, confidences) in enumerate(results):
         file_name = Path(image_path).name[:-4]
+        image = cv2.imread(image_path)
 
         # Create a visualization of bounding boxes over each image (and ground truth boxes, if applicable)
         visualizer.visualize(
             image_path,
             bboxes,
             confidences,
-            output_images_path,
+            images_folder,
             label_file_paths[i] if label_file_paths is not None else None)
 
-        image = cv2.imread(image_path)
-
+        # Convert x1,y1,x2,y2 output of object detection model into fractional x,y,w,h
         bboxes_xywh = xyxy2xywh(bboxes).astype(np.float64)
         bboxes_xywh[:, 0] /= float(image.shape[1])
         bboxes_xywh[:, 2] /= float(image.shape[1])
@@ -179,17 +172,16 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
 
         # Write the bounding boxes for this image to a .csv file in detections/
         # If metadata was given, this also writes crater position and diameter
-        with open(os.path.join(detections_path, f'{file_name}.csv'), 'w') as bbox_file:
+        with open(os.path.join(detections_folder, f'{file_name}.csv'), 'w') as bbox_file:
             if metadata_file_paths is not None:
-                # read image_path
-                # read metadata
-                # box impath long lat height_degree width_degree resolution
-                # (lat, long), size = something(bboxes, image_path, metadata_paths[i])
                 metadata = pd.read_csv(metadata_file_paths[i], header=None).to_numpy()
                 if metadata.shape != (1, 5):
-                    raise RuntimeError(f"Expected {metadata_file_paths[i]} to have shape (1, 5), but was {metadata.shape}")
+                    raise RuntimeError(
+                        f"Expected {metadata_file_paths[i]} to have shape (1, 5), but was {metadata.shape}; see README")
                 metadata = metadata[0]
-                lats, longs, diameters = get_lat_long_and_diameter(bboxes_xywh, image.shape[0], image.shape[1], metadata[0], metadata[1], metadata[2], metadata[3], metadata[4])
+                lats, longs, diameters = get_lat_long_and_diameter(bboxes_xywh, image.shape[0], image.shape[1],
+                                                                   metadata[0], metadata[1], metadata[2], metadata[3],
+                                                                   metadata[4])
 
                 metadata_df = pd.DataFrame([lats, longs, diameters]).T
                 bboxes_df = pd.DataFrame(bboxes_xywh)
@@ -198,20 +190,20 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
                 pd.DataFrame(bboxes_xywh).to_csv(bbox_file, header=False, index=False)
 
         if metadata_file_paths is not None:
-            plot_distribution_graph(statistics_path, file_name, bboxes_xywh, diameters, metadata[4])
+            plot_distribution_graph(statistics_folder, file_name, bboxes_xywh, diameters, metadata[4])
         else:
-            plot_distribution_graph(statistics_path, file_name, bboxes_xywh)
+            plot_distribution_graph(statistics_folder, file_name, bboxes_xywh)
 
     # If we were given labels, then statistics can be calculated here
     if labels_directory is not None and labels_directory != "":
-        statistics_file = os.path.join(statistics_path, 'statistics.csv')
+        statistics_file = os.path.join(statistics_folder, 'statistics.csv')
         all_true_bboxes = []
         for label_file in label_file_paths:
             all_true_bboxes.append(np.loadtxt(label_file, delimiter=','))
         try:
             TP, FP, FN = metric.read_boxes(all_predicted_bboxes, all_true_bboxes)
             pd.DataFrame([TP, FP, FN], index=['TP', 'FP', 'FN']).T.to_csv(statistics_file, index=True)
-        except Exception:
+        except Exception as e:
             pass
 
 

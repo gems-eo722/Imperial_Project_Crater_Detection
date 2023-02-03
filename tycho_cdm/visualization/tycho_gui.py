@@ -206,7 +206,7 @@ class TychoGUI(QWidget):
             images_folder, labels_folder, metadata_folder = tycho.get_input_directories(self.input_folder)
             tycho.check_arguments(self.input_folder, self.output_folder, images_folder, self.planet_name)
 
-            self.batch_size = len(os.listdir(self.images_folder))
+            self.batch_size = len(os.listdir(images_folder))
 
             model = TychoCDM(self.planet_name)
             self.spawn_inference_thread(model, images_folder, labels_folder, metadata_folder, self.output_folder)
@@ -237,7 +237,6 @@ class TychoGUI(QWidget):
 
     def get_results(self, images_path, model):
         self.batch_results = model.batch_inference(images_path, self.worker)
-        x = 5
 
     def finish_batch(self, labels_path, data_path, output_folder_path):
         self.clear_progress_bar()
