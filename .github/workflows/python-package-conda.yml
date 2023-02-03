@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
 
     steps:
     - uses: actions/checkout@v3
@@ -20,7 +24,9 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        conda env create --file environment_cpu.yml
+        conda env create --file environment_cuda.yml
+    - name: Activate environment
+      run: |
         conda activate acds-moonshot-tycho
     - name: Lint with flake8
       run: |
