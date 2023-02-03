@@ -1,6 +1,8 @@
+import torch
 import numpy as np
 import pandas as pd
-import torch
+from tycho_cdm.utils.post_process import xywh2xyxy
+import os
 
 
 def convert_pd_tensor(data):
@@ -53,6 +55,7 @@ def box_iou(true_bbox, pred_bbox, eps=1e-7):
         The MxN matrix containing the pairwise IoU values 
         for every element in true_bbox and prediction_bbox)
     """
+
     true_bbox_coord = box_coord(np.array(true_bbox))
     pred_bbox_coord = box_coord(np.array(pred_bbox))
 
@@ -60,13 +63,14 @@ def box_iou(true_bbox, pred_bbox, eps=1e-7):
     pred_bbox_tensor = convert_pd_tensor(pred_bbox_coord)
 
     (a1, a2), (b1, b2) = true_bbox_tensor.unsqueeze(1).chunk(2, 2), pred_bbox_tensor.unsqueeze(0).chunk(2, 2)
-
     inter = (torch.min(a2, b2) - torch.max(a1, b1)).clamp(0).prod(2)
     iou = inter / ((a2 - a1).prod(2) + (b2 - b1).prod(2) - inter + eps)
     pred_area = (b2 - b1).prod(2)
     truth_area = (a2 - a1).prod(2)
 
     return iou, pred_area, truth_area
+
+
 
 
 def single_confusion_matrix(iou_matrix, threshold):

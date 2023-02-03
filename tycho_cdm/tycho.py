@@ -103,7 +103,7 @@ def check_path_is_directory(path: str) -> str | None:
 
 def make_parser() -> argparse.ArgumentParser:
     """
-    Creates the parser used for this application, and configures the required inputs.
+    Creates the parser used for this application, and configures the required images.
     :return: The argument parser
     """
     parser = argparse.ArgumentParser(description='Tycho CDM')
