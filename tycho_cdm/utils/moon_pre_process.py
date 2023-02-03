@@ -11,10 +11,10 @@ from sklearn.cluster import KMeans
 
 def iou(BBGT, imgRect):
     """
-    TODO
-    :param BBGT:
-    :param imgRect:
-    :return:
+    Calculate the intersection over union.
+    :param BBGT: [N, 4]
+    :param imgRect: [4]
+    :return: [N, 1]
     """
     left_top = np.maximum(BBGT[:, :2], imgRect[:2])
     right_bottom = np.minimum(BBGT[:, 2:], imgRect[2:])
@@ -25,6 +25,15 @@ def iou(BBGT, imgRect):
 
 
 class ImageSplitter:
+    """
+    Class to split the given csv image into tiles, with overlapping.
+    :param csv_file: The input .csv image file
+    :param n_cluster: The desired number of tiles to split the image into
+    :param common: The top N number of a label clustered with diameters
+    :param subsize: The size of each patch
+    :param iou_thresh: Measurement of the overlap of a predicted versus actual bounding box for an object
+    :param gap: Overlapping coefficient
+    """
     def __init__(self, csv_file):
         df = pd.read_csv(csv_file)
         df_s = df[["LAT_CIRC_IMG", "LON_CIRC_IMG", "DIAM_CIRC_IMG"]].dropna()
