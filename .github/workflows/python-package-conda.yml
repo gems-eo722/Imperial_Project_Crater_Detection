@@ -12,6 +12,7 @@ on:
     branches:
       - main
       - ci-workflow
+      - gpu-test
 
 jobs:
   pytest-create-new-envronmet-test:
