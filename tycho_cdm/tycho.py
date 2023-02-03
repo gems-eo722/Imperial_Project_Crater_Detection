@@ -208,8 +208,11 @@ def write_results(results, labels_directory, metadata_directory, output_folder_p
         all_true_bboxes = []
         for label_file in label_file_paths:
             all_true_bboxes.append(np.loadtxt(label_file, delimiter=','))
-        TP, FP, FN = metric.read_boxes(all_predicted_bboxes, all_true_bboxes)
-        pd.DataFrame([TP, FP, FN], index=['TP', 'FP', 'FN']).T.to_csv(statistics_file, index=True)
+        try:
+            TP, FP, FN = metric.read_boxes(all_predicted_bboxes, all_true_bboxes)
+            pd.DataFrame([TP, FP, FN], index=['TP', 'FP', 'FN']).T.to_csv(statistics_file, index=True)
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':
