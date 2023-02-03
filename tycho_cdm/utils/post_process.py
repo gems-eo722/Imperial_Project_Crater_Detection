@@ -70,7 +70,9 @@ def inference(img_orig, model):
     all_scores = []
     n = 1
     if max(h, w) <= int(416 * 1.5):
-        return model.single_inference(img_orig)
+        output = model.single_inference(img_orig)
+        bboxes = xywh2xyxy(output[0] * subsize)
+        return bboxes.astype(np.int), output[1], output[2]
     else:
         while subsize < min(h, w):
             splitimgs, position = split(img_orig, subsize)

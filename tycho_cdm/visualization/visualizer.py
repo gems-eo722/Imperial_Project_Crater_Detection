@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import pandas as pd
 
+from tycho_cdm.utils.post_process import xywh2xyxy
+
 
 def visualize(image_path: str, bounding_boxes: [np.ndarray], confidences, output_path: str, label_path=None):
     """
@@ -28,6 +30,12 @@ def visualize(image_path: str, bounding_boxes: [np.ndarray], confidences, output
     draw_bounding_boxes(input_image, bounding_boxes, confidences, (0, 0, 255))
 
     if labels is not None:
+        height = input_image.shape[0]
+        width = input_image.shape[1]
+        labels[:, 0], labels[:, 2] = labels[:, 0] * width, labels[:, 2] * width
+        labels[:, 1], labels[:, 3] = labels[:, 1] * height, labels[:, 3] * height
+        labels = labels.astype(int)
+        labels = xywh2xyxy(labels)
         draw_bounding_boxes(input_image, labels, confidences, (255, 0, 0), draw_confidence=False)
 
     cv2.imwrite(os.path.join(output_path, image_name), input_image)
