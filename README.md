@@ -116,6 +116,9 @@ image center latitude,image center longitude,image width in degrees,image height
 
 Planet radius will be determined from the planet name that is provided when running the application.
 
+## Outputs
+
+The outputs of the program follow the specification in the project summary. To clarify, _red_ bounding boxes (whether with confidence score or without) were _predicted_ by the model. _Blue_ boxes are the _ground truth_.
 
 ## Project Summary
 

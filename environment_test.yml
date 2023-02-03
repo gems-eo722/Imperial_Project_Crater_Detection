@@ -3,11 +3,9 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python>=3.8
-  - seaborn
   - numpy<=1.23.5
-  - qt
-  - pyqt
   - pip
-  - pip:
-    - -r requirements.txt
+  - flake8
+  - pytest
+  - ipython
+  - numpy
